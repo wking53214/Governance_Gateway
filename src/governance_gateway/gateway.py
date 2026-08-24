@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 import re
 
-from .models import Artifact, Authority, EpistemicStatus, GateReason, GateResult, Scope
+from .models import Artifact, Authority, EpistemicStatus, GateReason, GateResult, Scope, _digest_fields
 
 
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")
@@ -39,7 +39,16 @@ class GovernanceGateway:
             if not isinstance(artifact.integrity, str) or not _HEX64.fullmatch(artifact.integrity):
                 return GateResult.reject(GateReason.INTEGRITY_FAILURE)
 
-            if artifact.integrity != artifact.expected_integrity():
+            expected = _digest_fields(
+                artifact.artifact_id,
+                artifact.payload,
+                artifact.provenance,
+                artifact.epistemic_status,
+                artifact.authority,
+                artifact.scope,
+            )
+
+            if artifact.integrity != expected:
                 return GateResult.reject(GateReason.INTEGRITY_FAILURE)
 
             return GateResult.accept(artifact)
