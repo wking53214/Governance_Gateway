@@ -1,5 +1,14 @@
 # GOVERNANCE GATEWAY V0.1
 
+## Install and test
+
+    pip install -e ".[test]"
+    pytest
+
+Stdlib only; version 0.1.0 in `pyproject.toml`. Bare `pytest` from a clone
+also works, since the test configuration puts `src/` on the path.
+
+
 ## Adversarially Tested Governed-Artifact Boundary
 
 Governance Gateway V0.1 is a deliberately small, domain-independent Python implementation of a governed-artifact boundary.

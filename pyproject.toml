@@ -15,6 +15,9 @@ test = ["pytest>=8"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+# Bare `pytest` from a clone, without `pip install -e .`, collected three
+# errors because the package lives under src/. Measured 2026-09-08.
+pythonpath = ["src"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
