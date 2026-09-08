@@ -16,7 +16,7 @@
       "snippet": null
     },
     "first_seen": "2026-09-03T03:41:19.668742+00:00",
-    "id": "ghost-611c56d53122",
+    "id": "ghost-66aaba3a4888",
     "layer": "mechanical",
     "severity": "minor",
     "status": "suppressed",
@@ -40,7 +40,7 @@
       "snippet": null
     },
     "first_seen": "2026-09-03T03:41:19.670761+00:00",
-    "id": "ghost-c6b13d8e6dee",
+    "id": "ghost-839d4bd13db4",
     "layer": "mechanical",
     "severity": "major",
     "status": "suppressed",
@@ -63,7 +63,7 @@
       "snippet": null
     },
     "first_seen": "2026-09-03T03:41:19.673170+00:00",
-    "id": "ghost-1a091a9f0e25",
+    "id": "ghost-a18acbb26a41",
     "layer": "mechanical",
     "severity": "minor",
     "status": "suppressed",
@@ -87,7 +87,7 @@
       "snippet": null
     },
     "first_seen": "2026-09-03T03:41:19.673578+00:00",
-    "id": "ghost-219b9d5012c3",
+    "id": "ghost-7eb94a26d7e2",
     "layer": "mechanical",
     "severity": "major",
     "status": "suppressed",
@@ -110,7 +110,7 @@
       "snippet": null
     },
     "first_seen": "2026-09-03T03:41:19.673593+00:00",
-    "id": "ghost-43a82c5dee63",
+    "id": "ghost-4319f65dbdb8",
     "layer": "mechanical",
     "severity": "minor",
     "status": "suppressed",
