@@ -1,873 +1,141 @@
-# GOVERNANCE GATEWAY V0.1
+# Governance_Gateway
 
-**Role in the governed action stack:** ADMISSION — the front door before any policy or conservation work.
+Adversarially tested, domain-independent **admission boundary** for governed artifacts. Version `0.1.0`. Stdlib only. Python ≥ 3.11.
+
+## 1. Pipeline Position & Role
+
+**ADMISSION — the door filter.** First stage of the live decision path.
 
 ```text
-Admission (this repo) → OBSERVE / Keys → Locks → PERCEIVE → Decision → Conservation → Execution → Custody
+ADMISSION (this repo)
+    → OBSERVATION   OBSERVE / interconnected_alpha
+    → INTERLOCKS    interconnected_zeta
+    → POLICY        PERCEIVE (observe-perceive)
+    → DECISION      interconnected_beta
+    → CONSERVATION  Conservation_Kernel
+    → EXECUTION     caller-supplied callable / GSA-815
+    → CUSTODY       interconnected_delta / sentinel_os
 ```
 
-Wired into the live path by [observe-perceive](https://github.com/wking53214/observe-perceive) (`gateway_admission_adapter.py`). Refusal here is **`NOT_ADMITTED`** (artifact never reached policy), not a policy **`REJECTED`**.
+Wired into the live path by [`observe-perceive`](https://github.com/wking53214/observe-perceive) via `gateway_admission_adapter.py`. Refusal here is **`NOT_ADMITTED`** (artifact never reached policy), **not** a policy `REJECTED`.
 
-Asks: well-formed? untampered? explicit provenance, authority, epistemic status, scope?  
-Does **not** ask: is this request permitted under policy? (that is PERCEIVE.)
+Question it answers: *is this artifact well-formed, untampered, and explicitly scoped, provenanced, and authorized-as-metadata?*  
+Question it does **not** answer: *is this request permitted under policy?* That is PERCEIVE.
 
-`READ_ONLY` vs `EXECUTE` scope is enforced so a read-scoped artifact cannot be executed by omission.
+## 2. Full System Scope & Architectural Depth
 
----
+The gateway is a **non-transforming validation boundary**. It evaluates an immutable `Artifact` and returns `ACCEPT` or `REJECT` with an explicit `GateReason`. It never repairs, promotes, rewrites, or silently coerces.
 
-## Install and test
+### Artifact contract
 
-    pip install -e ".[test]"
-    pytest
+| Field | Type | Requirement |
+|---|---|---|
+| `artifact_id` | `str` | Non-empty. Identity. |
+| `payload` | JSON-like | Frozen recursively (`MappingProxyType` / tuples). |
+| `provenance` | non-empty `Mapping` | Origin. Empty mapping is `MISSING_PROVENANCE`. |
+| `epistemic_status` | `EpistemicStatus` | Closed vocab: `FACT`, `INFERENCE`, `ASSUMPTION`, `RECOMMENDATION`, `DECISION`, `UNKNOWN`. |
+| `authority` | `Authority(actor, grant)` | Both strings non-empty. Presence of a grant string is **not** issuance of authorization. |
+| `scope` | `Scope` | `READ_ONLY` or `EXECUTE`. A read-scoped artifact cannot be executed by omission. |
+| `integrity` | 64-char lowercase hex SHA-256 | Independently recomputed; mismatch → `INTEGRITY_FAILURE`. |
 
-Stdlib only; version 0.1.0 in `pyproject.toml`. Bare `pytest` from a clone
-also works, since the test configuration puts `src/` on the path.
+Integrity is `SHA-256(canonical_json({artifact_id, payload, provenance, epistemic_status, authority, scope}))`. Canonicalization sorts keys, uses compact separators, `ensure_ascii=False`, `allow_nan=False`. Equivalent governed data must hash identically. The digest is **recomputed**, never trusted as a stored string.
 
+`Artifact.create(...)` freezes, hashes, and returns a frozen dataclass. `GovernanceGateway.evaluate(artifact)` re-validates types and recomputes the digest. Unexpected exceptions fail closed as `INVALID_ARTIFACT`.
 
-## Adversarially Tested Governed-Artifact Boundary
+### Rejection vocabulary
 
-Governance Gateway V0.1 is a deliberately small, domain-independent Python implementation of a governed-artifact boundary.
+`MISSING_PROVENANCE` · `MISSING_AUTHORITY` · `INVALID_EPISTEMIC_STATE` · `INVALID_SCOPE` · `INTEGRITY_FAILURE` · `INVALID_ARTIFACT` · `GOVERNANCE_VIOLATION`
 
-Its purpose is to establish a concrete enforcement point between an artifact producer and a downstream system.
+`GOVERNANCE_VIOLATION` is defined and unused by `evaluate()` today. It exists for a future caller-supplied policy hook that this package does not implement.
 
-The gateway evaluates whether an artifact satisfies explicit requirements for:
+### Layout
 
-- identity;
-- provenance;
-- authority;
-- epistemic status;
-- scope;
-- and integrity.
+```
+src/governance_gateway/
+    gateway.py    GovernanceGateway.evaluate
+    models.py     Artifact, Authority, EpistemicStatus, Scope, GateResult, digest
+tests/            adversarial, integrity-bypass, unit
+```
 
-The implementation intentionally does not transform an accepted artifact.
+## 3. What It Does NOT Do / Non-Goals
 
-Its fundamental operation is:
+- Does **not** decide policy permission (PERCEIVE).
+- Does **not** issue, revoke, or verify cryptographic authorization grants. `Authority.grant` is a non-empty string; there is no grant registry, KMS, or signature over the grant.
+- Does **not** transform, normalize, or "fix" invalid artifacts.
+- Does **not** authenticate the producer. SHA-256 is integrity, not authenticity. An attacker who can replace both content and digest wins.
+- Does **not** persist, ledger, or hash-chain across artifacts.
+- Does **not** talk to OBSERVE, zeta, Conservation Kernel, or sentinel_os directly.
+- Does **not** implement identity, actor registry, or session.
 
-    INPUT
-      │
-      ▼
-    VALIDATE
-      │
-      ├──────────────┐
-      │              │
-    ACCEPT         REJECT
-      │              │
-      ▼              ▼
-    OUTPUT          REASON
+## 4. Brutally Honest Current Status & Gaps
 
+| Claim | Reality |
+|---|---|
+| "Authorization is explicit" | `Authority.actor` + `Authority.grant` are required non-empty strings. No check that the grant exists, is unexpired, is scoped, or was issued by a real authority. |
+| Production admission door | Runnable library with CI (`tests.yml`). No network service, no authn, no rate limit, no durable log of refusals. |
+| Scope enforcement | Gateway validates the enum. Downstream execution-scope binding is the orchestrator's job (`observe-perceive` scope-binding tests). This package cannot stop a caller who ignores `GateResult`. |
+| Epistemic vocab | Gateway vocab (`FACT`/`INFERENCE`/…) is **not identical** to Conservation Kernel's (`FACT`/`OBSERVATION`/`ESTIMATED`/`CONFLICTED`/…). Adapters must map. Drift is a real seam. |
+| `GOVERNANCE_VIOLATION` | Dead enum member. |
+| Python 3.11+ | `Authority \| None` union syntax. α/ζ/β/δ advertise 3.9. Mixed floor. |
 
----
+Runnable: `pip install -e ".[test]" && pytest`. Tests cover adversarial integrity bypass. Not a deployed service.
 
-# Why This Repository Exists
+## 5. Core Invariants & Guarantees
 
-Governance Gateway V0.1 was developed as a foundational and adversarial baseline.
+- **Fail-closed:** malformed, missing, or contradictory governance state is `REJECT`, never silent `ACCEPT`.
+- **Recomputation over trust:** integrity is always recalculated from canonical fields.
+- **Non-transformation:** accepted artifact is the same object that was presented.
+- **Immutability after freeze:** payload/provenance cannot be mutated without breaking the digest (and `frozen=True` dataclasses).
+- **Explicit rejection:** every refusal carries a `GateReason`.
 
-The objective was not to build a complete governance platform.
+Does **not** guarantee: authenticity, non-repudiation, authorization, availability, or protection against a fully compromised runtime.
 
-The objective was to create the smallest technically concrete boundary capable of making a specific governance proposition testable:
+## 6. Inputs, Outputs & Type Contracts
 
-> An artifact should not cross a governed boundary merely because it exists or because a producing system is capable of creating it.
+```python
+from governance_gateway import (
+    Artifact, Authority, EpistemicStatus, Scope,
+    GovernanceGateway, GateResult, GateReason,
+)
 
-Instead, the artifact must satisfy explicit conditions before acceptance.
+artifact = Artifact.create(
+    artifact_id="admit-001",
+    payload={"action": "discharge", "subject_id": "p1"},
+    provenance={"source": "ehr", "extracted_at": "2026-09-01T00:00:00Z"},
+    epistemic_status=EpistemicStatus.INFERENCE,
+    authority=Authority(actor="nurse.jsmith", grant="grant:shift-lead:2026-09-01"),
+    scope=Scope.EXECUTE,
+)
+result: GateResult = GovernanceGateway().evaluate(artifact)
+# result.accepted: bool
+# result.artifact: Artifact | None
+# result.reason: GateReason | None
+```
 
-This narrow scope is intentional.
+`GateResult` is frozen. `accepted=True` implies `artifact` is the input artifact and `reason is None`.
 
-A small boundary makes its guarantees sufficiently explicit that they can be subjected to hostile falsification.
+## 7. Stack Integration Topology
 
-
----
-
-# Core Contract
-
-The V0.1 contract is:
-
-    ARTIFACT
-       │
-       ▼
-    GOVERNANCE GATEWAY
-       │
-       ├── identity
-       ├── provenance
-       ├── authority
-       ├── epistemic status
-       ├── scope
-       └── integrity
-       │
-       ▼
-    ACCEPT / REJECT
-
-The gateway does not attempt to determine whether an artifact is useful, intelligent, desirable, or commercially valuable.
-
-It determines whether the artifact satisfies the defined gateway contract.
-
-
----
-
-# The Governed Artifact
-
-The artifact model contains the information required for the gateway to evaluate its governance state.
-
-Conceptually:
-
-    ┌──────────────────────────┐
-    │        ARTIFACT          │
-    ├──────────────────────────┤
-    │ artifact_id              │
-    │ payload                  │
-    │ provenance               │
-    │ epistemic_status         │
-    │ authority                │
-    │ scope                    │
-    │ integrity                │
-    └──────────────────────────┘
-
-These fields are treated as part of the governed representation.
-
-They are not merely optional metadata attached to an otherwise independent payload.
-
-
----
-
-# Identity
-
-Every artifact must have a non-empty artifact identifier.
-
-The identifier provides an explicit identity for the represented object.
-
-Conceptually:
-
-    ARTIFACT
-       │
-       └── artifact_id
-
-An artifact without a valid identity cannot satisfy the gateway contract.
-
-
----
-
-# Provenance
-
-Every accepted artifact requires explicit provenance.
-
-Provenance represents information about the origin or source of the artifact.
-
-Conceptually:
-
-    ARTIFACT
-       │
-       ▼
-    PROVENANCE
-       │
-       ▼
-    WHERE DID THIS COME FROM?
-
-The gateway therefore treats provenance as a governance requirement rather than an optional annotation.
-
-
----
-
-# Authority
-
-Every accepted artifact requires an explicit authority record.
-
-Authority contains:
-
-    actor
-    +
-    grant
-
-Conceptually:
-
-    AUTHORITY
-       │
-       ├── actor
-       └── grant
-
-This preserves a distinction between:
-
-    WHAT THE ARTIFACT IS
-
-and:
-
-    WHAT AUTHORITY IS ASSOCIATED WITH IT
-
-V0.1 does not attempt to implement a complete authorization infrastructure.
-
-It establishes the presence of explicit authority information as part of the artifact contract.
-
-
----
-
-# Epistemic Status
-
-The artifact carries an explicit epistemic status.
-
-The defined states are:
-
-    FACT
-    INFERENCE
-    ASSUMPTION
-    RECOMMENDATION
-    DECISION
-    UNKNOWN
-
-This allows the system to distinguish different kinds of knowledge or claims.
-
-For example:
-
-    FACT
-
-is not structurally equivalent to:
-
-    INFERENCE
-
-and:
-
-    INFERENCE
-
-is not structurally equivalent to:
-
-    ASSUMPTION
-
-The gateway validates that the supplied epistemic state belongs to the defined vocabulary.
-
-
----
-
-# Scope
-
-The artifact carries an explicit scope.
-
-V0.1 defines:
-
-    READ_ONLY
-    EXECUTE
-
-Scope establishes a basic distinction regarding the permitted operating context of the artifact.
-
-The gateway validates that the supplied scope is one of the defined values.
-
-
----
-
-# Integrity
-
-The artifact contains a deterministic SHA-256 integrity digest.
-
-The digest is derived from the governed artifact fields.
-
-Conceptually:
-
-    GOVERNED FIELDS
-          │
-          ▼
-    CANONICAL REPRESENTATION
-          │
-          ▼
-    DETERMINISTIC SERIALIZATION
-          │
-          ▼
-        SHA-256
-          │
-          ▼
-      INTEGRITY DIGEST
-
-During evaluation, the gateway independently calculates the expected digest and compares it with the artifact's supplied integrity value.
-
-Conceptually:
-
-    PROVIDED DIGEST
-          │
-          │ compare
-          ▼
-    EXPECTED DIGEST
-          │
-       ┌──┴──┐
-       │     │
-      MATCH  MISMATCH
-       │     │
-       ▼     ▼
-     ACCEPT REJECT
-
-
----
-
-# Canonicalization
-
-Integrity depends upon deterministic representation.
-
-The gateway therefore uses canonicalization before calculating the integrity digest.
-
-The objective is that equivalent governed data produce a reproducible representation before hashing.
-
-Conceptually:
-
-    STRUCTURED DATA
-          │
-          ▼
-    CANONICAL FORM
-          │
-          ▼
-    DETERMINISTIC SERIALIZATION
-          │
-          ▼
-        SHA-256
-
-
----
-
-# Immutability
-
-The artifact representation is frozen.
-
-JSON-like structures are recursively converted into immutable representations.
-
-Mappings are converted into immutable mapping representations.
-
-Sequences are converted into immutable tuples.
-
-This creates an important relationship between:
-
-    ARTIFACT STATE
-
-and:
-
-    INTEGRITY DIGEST
-
-The system does not simply calculate a digest and then leave the underlying representation freely mutable.
-
-Conceptually:
-
-    CREATE
-      │
-      ▼
-    FREEZE
-      │
-      ▼
-    HASH
-      │
-      ▼
-    GOVERNED ARTIFACT
-
-
----
-
-# Non-Transforming Boundary
-
-The gateway is intentionally a validation boundary rather than a transformation engine.
-
-The intended behavior is:
-
-    INPUT ARTIFACT
-          │
-          ▼
-       EVALUATE
-          │
-          ▼
-       ACCEPT
-          │
-          ▼
-    SAME ARTIFACT
-
-The gateway does not silently repair an invalid artifact.
-
-It does not automatically promote an artifact's epistemic state.
-
-It does not silently change its authority.
-
-It does not rewrite its provenance.
-
-It does not alter its scope.
-
-It evaluates the artifact that was presented.
-
-
----
-
-# Explicit Rejection
-
-A rejection is represented through an explicit gate reason.
-
-Defined rejection categories include:
-
-    MISSING_PROVENANCE
-    MISSING_AUTHORITY
-    INVALID_EPISTEMIC_STATE
-    INVALID_SCOPE
-    INTEGRITY_FAILURE
-    INVALID_ARTIFACT
-    GOVERNANCE_VIOLATION
-
-Therefore:
-
-    REJECT
-
-is not merely:
-
-    False
-
-The gateway can identify why the artifact failed its contract.
-
-This makes failure observable and testable.
-
-
----
-
-# The Gateway Boundary
-
-The architectural role of the gateway can be represented as:
-
-    ┌─────────────────────┐
-    │       UPSTREAM      │
-    │      PRODUCER       │
-    └──────────┬──────────┘
-               │
-               │ artifact
-               ▼
-    ┌─────────────────────┐
-    │  GOVERNANCE GATEWAY │
-    │                     │
-    │ identity            │
-    │ provenance          │
-    │ authority           │
-    │ epistemic status    │
-    │ scope               │
-    │ integrity           │
-    └──────────┬──────────┘
-               │
-        ┌──────┴──────┐
-        │             │
-      ACCEPT        REJECT
-        │             │
-        ▼             ▼
-    ┌─────────┐    ┌──────────┐
-    │DOWNSTREAM│   │ FAILURE  │
-    │ SYSTEM   │   │  REASON  │
-    └─────────┘    └──────────┘
-
-
----
-
-# Relationship to AI and LLM Systems
-
-Governance Gateway V0.1 does not itself implement an AI or LLM.
-
-Its role is downstream of whatever system creates the artifact.
-
-Conceptually:
-
-    AI / LLM / SOFTWARE / HUMAN
-               │
-               │ produces artifact
-               ▼
-       GOVERNANCE GATEWAY
-               │
-          ┌────┴────┐
-          │         │
-        ACCEPT    REJECT
-          │         │
-          ▼         ▼
-      DOWNSTREAM   REASON
-
-The gateway can therefore govern artifacts produced by AI systems without becoming an AI system itself.
-
-
----
-
-# Domain Independence
-
-The gateway is not inherently tied to:
-
-- artificial intelligence;
-- large language models;
-- IVR;
-- cybersecurity;
-- aviation;
-- healthcare;
-- finance;
-- robotics;
-- or any particular industry.
-
-The underlying construct is an artifact-governance boundary.
-
-The artifact could originate from many different systems.
-
-The gateway evaluates the defined governance properties rather than assuming a particular application domain.
-
-
----
-
-# Adversarial Testing
-
-## Purpose
-
-Governance Gateway V0.1 was developed specifically as an adversarial baseline for the governance research underlying the associated white paper.
-
-The testing approach is therefore different from ordinary functional testing.
-
-Functional testing asks:
-
-    "Does the system work as designed?"
-
-Adversarial testing asks:
-
-    "Can the system be made to violate the guarantees it claims to enforce?"
-
-The latter question is central to this repository.
-
-
----
-
-# Adversarial Test Campaign
-
-The gateway was subjected to:
-
-    105 ADVERSARIAL ATTACKS
-
-The attacks were designed to probe the gateway's governance boundary and attempt to cause behavior inconsistent with its defined contract.
-
-The observed result was:
-
-    105 ATTACKS
-         │
-         ├── 100 did not produce the targeted violation
-         │
-         └──   5 exposed issues
-                   │
-                   ▼
-              ANALYSIS /
-              REMEDIATION
-
-
----
-
-# Interpretation of the Results
-
-The five issues are not represented as evidence that the entire gateway failed.
-
-Nor are the 100 successful defenses represented as proof that the gateway is universally secure.
-
-The appropriate interpretation is:
-
-> Under the defined adversarial test campaign, 105 attack cases were applied to the V0.1 implementation. One hundred did not defeat the targeted governance behavior, while five exposed implementation or boundary issues requiring further analysis.
-
-This distinction is important.
-
-The experiment measures the behavior of the implementation against a defined attack corpus.
-
-It does not establish an unlimited security guarantee.
-
-
----
-
-# Why the Five Failures Matter
-
-A hostile test that exposes a weakness produces useful evidence.
-
-The failure can establish:
-
-- a missing invariant;
-- an incomplete threat model;
-- an implementation defect;
-- a boundary condition;
-- an architectural limitation;
-- or an assumption that does not survive hostile conditions.
-
-Therefore:
-
-    ATTACK
-      │
-      ▼
-    FAILURE
-      │
-      ▼
-    EVIDENCE
-      │
-      ▼
-    ARCHITECTURAL LEARNING
-
-
----
-
-# Why the 100 Surviving Attacks Matter
-
-The attacks that did not produce the targeted violation provide evidence that the corresponding defenses operated as intended under those test conditions.
-
-The correct claim is therefore bounded:
-
-    TESTED ATTACK CLASS
-          │
-          ▼
-    EXPECTED DEFENSE
-          │
-          ▼
-       OBSERVED
-          │
-          ▼
-    SURVIVED TEST
-
-
-This is substantially more precise than claiming that the gateway is simply "secure."
-
-
----
-
-# Adversarial Testing as a Development Method
-
-The adversarial campaign is part of the architecture's development methodology.
-
-The cycle is:
-
-    DEFINE GUARANTEE
-          │
-          ▼
-    IMPLEMENT
-          │
-          ▼
-    ATTACK
-          │
-          ▼
-    OBSERVE
-          │
-       ┌──┴──┐
-       │     │
-    SURVIVES FAILS
-       │     │
-       │     ▼
-       │   ANALYZE
-       │     │
-       │     ▼
-       │   MODIFY
-       │     │
-       │     └──────┐
-       │            │
-       └────────────┘
-              │
-              ▼
-            RETEST
-
-
----
-
-# Research Role
-
-Governance Gateway V0.1 serves as a concrete experimental object for studying whether governance properties can be enforced at an artifact boundary.
-
-The research question is broader than:
-
-    "Can a Python class validate an object?"
-
-The more significant question is:
-
-> **Can explicit governance properties be converted into an enforceable boundary that resists attempts to falsify, bypass, mutate, or misrepresent the governed artifact?**
-
-The adversarial campaign provides experimental evidence relevant to that question.
-
-
----
-
-# Relationship to Conservation and Governance Research
-
-The gateway is consistent with a broader architectural distinction between:
-
-    GOVERNANCE INSIDE A LIBRARY
-
-and:
-
-    GOVERNANCE AT A SYSTEM BOUNDARY
-
-A library can preserve an invariant within its own execution path.
-
-A gateway attempts to establish the invariant at the point where an artifact crosses into another processing domain.
-
-Conceptually:
-
-    PRODUCER
-       │
-       ▼
-    ARTIFACT
-       │
-       ▼
-    GOVERNANCE BOUNDARY
-       │
-       ▼
-    CONSUMER
-
-This distinction is central to the purpose of the repository.
-
-
----
-
-# What V0.1 Does Not Attempt
-
-The current implementation deliberately does not provide:
-
-- a complete policy engine;
-- distributed governance;
-- network enforcement;
-- authentication infrastructure;
-- enterprise identity management;
-- LLM execution;
-- workflow orchestration;
-- database persistence;
-- automatic remediation;
-- universal authorization;
-- or a claim of absolute security.
-
-The implementation is intentionally narrow.
-
-
----
-
-# Current Implementation
-
-The repository is organized as a small Python package:
-
-    src/
-      governance_gateway/
-        __init__.py
-        gateway.py
-        models.py
-
-The core components provide:
-
-    models.py
+```text
+producer (human / model / system)
+        │  Artifact.create(...)  — freeze + hash
+        ▼
+GovernanceGateway.evaluate
         │
-        ├── Artifact
-        ├── Authority
-        ├── EpistemicStatus
-        ├── Scope
-        ├── GateReason
-        └── GateResult
+        ├── REJECT  →  NOT_ADMITTED  (observe-perceive gateway_admission_adapter)
+        └── ACCEPT  →  orchestrator preserves seal; PERCEIVE/Conservation never see unsealed junk
+                            │
+                            ▼
+                   observe-perceive.GovernanceOrchestrator
+                            │
+                            ├── OBSERVE / α Keys
+                            ├── ζ Locks
+                            ├── PERCEIVE gates
+                            ├── ConservationKernel.submit
+                            ├── execution_guard.authorize_execution
+                            └── δ / sentinel_os ledger
+```
 
-    gateway.py
-        │
-        └── GovernanceGateway
+This repo has **zero runtime imports** of sibling packages. Integration is adapter-side, in observe-perceive.
 
-
----
-
-# Basic Usage
-
-A governed artifact can be created with its required governance fields:
-
-    artifact = Artifact.create(
-        artifact_id="example-1",
-        payload={"message": "hello"},
-        provenance={"source": "human"},
-        epistemic_status=EpistemicStatus.INFERENCE,
-        authority=Authority(
-            actor="alice",
-            grant="review"
-        ),
-        scope=Scope.READ_ONLY,
-    )
-
-The artifact can then be evaluated:
-
-    result = GovernanceGateway().evaluate(artifact)
-
-The result indicates whether the artifact crossed the gateway:
-
-    if result.accepted:
-        governed_artifact = result.artifact
-    else:
-        reason = result.reason
-
-
----
-
-# Foundational Design Principles
-
-## Explicit Identity
-
-An artifact must be identifiable.
-
-## Explicit Provenance
-
-An artifact must carry information about its origin.
-
-## Explicit Authority
-
-Authority must be represented rather than assumed.
-
-## Explicit Epistemic Status
-
-The system must distinguish different epistemic states.
-
-## Explicit Scope
-
-The permitted scope must be represented.
-
-## Integrity
-
-The represented governed state must be protected by deterministic integrity verification.
-
-## Immutability
-
-The governed representation should not silently change after integrity is established.
-
-## Non-Transformation
-
-The gateway should evaluate rather than silently rewrite the artifact.
-
-## Explicit Failure
-
-Rejection should communicate why the artifact failed.
-
-## Adversarial Falsifiability
-
-Claims should be exposed to hostile attempts at falsification.
-
-
----
-
-# Current Status
-
-Governance Gateway V0.1 is a foundational, deliberately minimal governance-boundary implementation.
-
-Its current evidence base includes an adversarial campaign of 105 attack cases developed in support of the associated white-paper research.
-
-The observed campaign result was:
-
-    105 ATTACKS
-       │
-       ├── 100 DID NOT PRODUCE THE TARGETED VIOLATION
-       │
-       └──   5 EXPOSED ISSUES
-
-Those five issues remain part of the empirical record.
-
-They should not be erased from the history of the system simply because later revisions may address them.
-
-The purpose of the adversarial baseline is precisely to make such weaknesses visible.
-
-
----
-
-# Evidence Versus Claim
-
-The repository distinguishes between what the implementation does and what the testing demonstrates.
-
-The implementation establishes a defined contract.
-
-The adversarial campaign tests that contract.
-
-The resulting evidence supports bounded statements about observed behavior under the tested attack conditions.
-
-It does not justify an unlimited claim of security or universal resistance to attack.
-
-
----
-
-# Central Proposition
-
-> **Governance should be enforceable at the boundary where an artifact enters a governed processing path.**
-
-Governance Gateway V0.1 implements that proposition as a deliberately small, explicit, testable boundary.
-
-Its value is not that it attempts to solve every governance problem.
-
-Its value is that it makes a specific governance contract concrete enough to attack.
-
-And when an attack succeeds, the failure becomes part of the evidence required to determine what the boundary actually guarantees.
+Apache-2.0. Commit discipline: the gateway is small on purpose. Do not grow it into a policy engine.
