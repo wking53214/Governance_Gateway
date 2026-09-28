@@ -1,5 +1,20 @@
 # GOVERNANCE GATEWAY V0.1
 
+**Role in the governed action stack:** ADMISSION — the front door before any policy or conservation work.
+
+```text
+Admission (this repo) → OBSERVE / Keys → Locks → PERCEIVE → Decision → Conservation → Execution → Custody
+```
+
+Wired into the live path by [observe-perceive](https://github.com/wking53214/observe-perceive) (`gateway_admission_adapter.py`). Refusal here is **`NOT_ADMITTED`** (artifact never reached policy), not a policy **`REJECTED`**.
+
+Asks: well-formed? untampered? explicit provenance, authority, epistemic status, scope?  
+Does **not** ask: is this request permitted under policy? (that is PERCEIVE.)
+
+`READ_ONLY` vs `EXECUTE` scope is enforced so a read-scoped artifact cannot be executed by omission.
+
+---
+
 ## Install and test
 
     pip install -e ".[test]"
