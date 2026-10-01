@@ -138,4 +138,4 @@ GovernanceGateway.evaluate
 
 This repo has **zero runtime imports** of sibling packages. Integration is adapter-side, in observe-perceive.
 
-Proprietary. Copyright (c) 2026 William King. All rights reserved. See LICENSE. Commit discipline: the gateway is small on purpose. Do not grow it into a policy engine.
+Proprietary. Copyright (c) 2026 William N. King. All rights reserved. See LICENSE. Commit discipline: the gateway is small on purpose. Do not grow it into a policy engine.
