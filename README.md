@@ -52,9 +52,11 @@ Integrity is `SHA-256(canonical_json({artifact_id, payload, provenance, epistemi
 
 ```
 src/governance_gateway/
-    gateway.py    GovernanceGateway.evaluate
-    models.py     Artifact, Authority, EpistemicStatus, Scope, GateResult, digest
-tests/            adversarial, integrity-bypass, unit
+    gateway.py        GovernanceGateway.evaluate
+    models.py         Artifact, Authority, EpistemicStatus, Scope, GateResult, digest
+    cns_connector.py  optional CNS adapter, loaded on demand (section 8)
+tests/                adversarial, integrity-bypass, unit; CNS independence, judged content,
+                      mapping (against tests/cns_gate_double.py) and connector (real CNS)
 ```
 
 ## 3. What It Does NOT Do / Non-Goals
@@ -136,6 +138,38 @@ GovernanceGateway.evaluate
                             └── δ / sentinel_os ledger
 ```
 
-This repo has **zero runtime imports** of sibling packages. Integration is adapter-side, in observe-perceive.
+This repo has **zero runtime imports** of sibling packages. Integration is adapter-side, in observe-perceive. The one exception is the optional CNS connector (section 8), which loads `cns.gate` only when one of its functions is called.
+
+## 8. Connecting to CNS (optional)
+
+Governance_Gateway stands alone: no runtime dependency, nothing imported from CNS when the package loads, and the whole suite passes with CNS absent. If CNS is present, `governance_gateway.cns_connector` expresses the gateway's verdict as a CNS gate result, so it can be resolved alongside gates from other repositories. The package `__init__` does not import the connector, and no module here imports `cns` by statement.
+
+```
+pip install '.[cns]'    # from a checkout of this repository; CNS is pinned to v1.4.0
+```
+
+```python
+from governance_gateway.cns_connector import evaluate_to_cns
+from cns.gate import resolve
+
+verdict = evaluate_to_cns(artifact)   # a cns.gate.GateResult, bound to the artifact
+resolve([verdict])                    # PASS or TERMINAL_BREACH, fail-closed
+```
+
+| Governance_Gateway | CNS |
+|---|---|
+| where it judges | `ALPHA`: the admission door, before policy, decision or execution exist for the artifact. A refusal is `NOT_ADMITTED` (section 1). There is no outcome end and the connector does not invent one, so `cns_chain().complete()` is `False` by design. |
+| `accepted` | `PASS`, empty `reason` |
+| refused, any `GateReason` | `TERMINAL_BREACH`, `reason` is the `GateReason` value unchanged. Never `RETRY`: the gateway never repairs or re-renders, and nothing here models a re-attempt. |
+| a native verdict that contradicts itself (accepted with a reason, accepted for another artifact or for something that is not an `Artifact`, `accepted` not a bool) | `TERMINAL_BREACH`, `reason` is `INCONSISTENT_VERDICT`. A refusal with no reason is still a refusal (`NO_REASON_GIVEN`). |
+| judged content | `subject` is the `artifact_id` (or `"artifact"`), and `subject_digest` covers the six governed fields **and the stored `integrity`**. For every artifact the gateway accepts, the digest changes if the content changes anywhere, at any depth or size (`-0.0` for `0.0` included), so a `PASS` cannot be moved onto another artifact, a forged copy, or content that drifted after the verdict. |
+
+How the content is made digestible, without losing what the gateway accepts. Scalars are read as the plain built-in values they hold, never through a subclass's own methods. A mapping key that is not plain text (an int, an enum, a string CNS cannot encode) is described, not stringified, and insertion order never reaches the digest. Containers nested more than 32 levels deep, or holding more than 10,000 values in one field, are replaced by a SHA-256 of the whole subtree, computed without recursion and visiting each shared node once, so drift below the bound is still caught by `binds`. What cannot be described faithfully gets a tagged stand-in and never an exception: a non-artifact (its type), NaN, an over-long integer, a lone surrogate, an unsupported type, a missing attribute, a circular structure (the whole field), and a value whose inspection itself raises. The gateway refuses each of these but the last, so none of them is content a `PASS` rests on. The digest is tamper-evidence, not authentication (section 3).
+
+The connector translates and decides nothing. If the gateway itself raises (for example `RecursionError` on a circular payload that is otherwise valid), the connector raises too; that is never a `PASS`.
+
+Without CNS installed, the connector's functions raise `CnsNotInstalled` with the install command. The same error says so when CNS is installed but older than v1.4.0 or cannot be imported. Nothing else in the package changes.
+
+Tests: `tests/test_cns_independence.py`, `tests/test_cns_judged_content.py` and `tests/test_cns_mapping_double.py` need no CNS and run everywhere, CI included (the mapping tests run against a stand-in for `cns.gate`, `tests/cns_gate_double.py`). `tests/test_cns_connector.py` runs against the real CNS and skips when it is not installed; it also checks that the stand-in is no looser than the real contract.
 
 Apache-2.0. Commit discipline: the gateway is small on purpose. Do not grow it into a policy engine.
