@@ -7,11 +7,11 @@
     "disposition": null,
     "disposition_note": "",
     "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/Governance_Gateway/tests/test_adversarial.py",
+      "file": "tests/test_adversarial.py",
       "line_end": 21,
       "line_start": 13,
       "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/Governance_Gateway/tests/test_integrity_bypass.py"
+        "tests/test_integrity_bypass.py"
       ],
       "snippet": null
     },
@@ -30,12 +30,12 @@
     "disposition": null,
     "disposition_note": "",
     "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/Governance_Gateway/src/governance_gateway/gateway.py",
+      "file": "src/governance_gateway/gateway.py",
       "line_end": 30,
       "line_start": 30,
       "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/Governance_Gateway/src/governance_gateway/gateway.py:33-33",
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/Governance_Gateway/src/governance_gateway/gateway.py:36-36"
+        "src/governance_gateway/gateway.py:33-33",
+        "src/governance_gateway/gateway.py:36-36"
       ],
       "snippet": null
     },
@@ -54,11 +54,11 @@
     "disposition": null,
     "disposition_note": "",
     "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/Governance_Gateway/src/governance_gateway/models.py",
+      "file": "src/governance_gateway/models.py",
       "line_end": 43,
       "line_start": 43,
       "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/Governance_Gateway/src/governance_gateway/models.py:45-45"
+        "src/governance_gateway/models.py:45-45"
       ],
       "snippet": null
     },
@@ -77,12 +77,12 @@
     "disposition": null,
     "disposition_note": "",
     "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/Governance_Gateway/src/governance_gateway/models.py",
+      "file": "src/governance_gateway/models.py",
       "line_end": 115,
       "line_start": 115,
       "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/Governance_Gateway/src/governance_gateway/models.py:117-117",
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/Governance_Gateway/src/governance_gateway/models.py:119-119"
+        "src/governance_gateway/models.py:117-117",
+        "src/governance_gateway/models.py:119-119"
       ],
       "snippet": null
     },
@@ -101,11 +101,11 @@
     "disposition": null,
     "disposition_note": "",
     "evidence": {
-      "file": "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/Governance_Gateway/src/governance_gateway/models.py",
+      "file": "src/governance_gateway/models.py",
       "line_end": 121,
       "line_start": 121,
       "related_files": [
-        "/tmp/claude-1000/-home-wking53214/f7f86960-5cd3-4e63-a084-1fe153210437/scratchpad/ghost_survey/clones/Governance_Gateway/src/governance_gateway/models.py:122-122"
+        "src/governance_gateway/models.py:122-122"
       ],
       "snippet": null
     },
