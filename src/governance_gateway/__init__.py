@@ -1,3 +1,4 @@
+from .dashboard import GateDashboard
 from .gateway import GovernanceGateway
 from .models import (
     Artifact,
@@ -12,6 +13,7 @@ __all__ = [
     "Artifact",
     "Authority",
     "EpistemicStatus",
+    "GateDashboard",
     "GateReason",
     "GateResult",
     "GovernanceGateway",

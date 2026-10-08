@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 import re
 
+from .dashboard import GateDashboard
 from .models import Artifact, Authority, EpistemicStatus, GateReason, GateResult, Scope, _digest_fields
 
 
@@ -14,7 +15,18 @@ _HEX64 = re.compile(r"^[0-9a-f]{64}$")
 class GovernanceGateway:
     """Validate governed artifacts without transforming them."""
 
+    def __init__(self, dashboard: GateDashboard | None = None) -> None:
+        #: Optional outcome counter. Records only; never changes a decision.
+        self.dashboard = dashboard
+
     def evaluate(self, artifact: Any) -> GateResult:
+        """Decide accept or reject, then record the outcome if a dashboard is attached."""
+        result = self._judge(artifact)
+        if self.dashboard is not None:
+            self.dashboard.record(result)
+        return result
+
+    def _judge(self, artifact: Any) -> GateResult:
         if not isinstance(artifact, Artifact):
             return GateResult.reject(GateReason.INVALID_ARTIFACT)
 
