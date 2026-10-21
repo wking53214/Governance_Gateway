@@ -170,6 +170,6 @@ The connector translates and decides nothing. If the gateway itself raises (for 
 
 Without CNS installed, the connector's functions raise `CnsNotInstalled` with the install command. The same error says so when CNS is installed but older than v1.5.1 or cannot be imported. Nothing else in the package changes.
 
-Tests: `tests/test_cns_independence.py`, `tests/test_cns_judged_content.py` and `tests/test_cns_mapping_double.py` need no CNS and run everywhere, CI included (the mapping tests run against a stand-in for `cns.gate`, `tests/cns_gate_double.py`). `tests/test_cns_connector.py` runs against the real CNS and skips when it is not installed; it also checks that the stand-in is no looser than the real contract.
+Tests: `tests/test_cns_independence.py`, `tests/test_cns_judged_content.py` and `tests/test_cns_mapping_double.py` need no CNS and run everywhere, CI included (the mapping tests run against a stand-in for `cns.gate`, `tests/cns_gate_double.py`). `tests/test_cns_connector.py` runs against the real CNS and skips when it is not installed; it also checks that the stand-in is no looser than the real contract. With `GOVERNANCE_GATEWAY_REQUIRE_CNS=1` a missing CNS fails the run instead of skipping it; CI's `cns` job installs the extra and sets it.
 
 Apache-2.0. Commit discipline: the gateway is small on purpose. Do not grow it into a policy engine.
