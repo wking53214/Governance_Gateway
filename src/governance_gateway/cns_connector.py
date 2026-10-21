@@ -205,7 +205,7 @@ def _cns_gate() -> ModuleType:
     missing = [name for name in _REQUIRED_NAMES if not hasattr(module, name)]
     if missing:
         raise _unusable(
-            f"it lacks {', '.join(missing)}; the connector needs CNS v1.4.0 "
+            f"it lacks {', '.join(missing)}; the connector needs CNS v1.4.0 or newer "
             "(subject_digest arrived in 1.2.0)"
         )
     return module
