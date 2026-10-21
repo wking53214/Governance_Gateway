@@ -8,14 +8,18 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import os
 from enum import Enum
 
 import cns_gate_double as double
 import pytest
 
-cns_gate = pytest.importorskip(
-    "cns.gate", reason="cns not installed; run in an environment with governance-gateway[cns]"
-)
+if os.environ.get("GOVERNANCE_GATEWAY_REQUIRE_CNS") == "1":  # CI: a missing cns is a failure, not a skip
+    import cns.gate as cns_gate
+else:
+    cns_gate = pytest.importorskip(
+        "cns.gate", reason="cns not installed; run in an environment with governance-gateway[cns]"
+    )
 
 from governance_gateway import (  # noqa: E402
     Artifact,

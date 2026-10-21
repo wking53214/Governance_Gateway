@@ -29,3 +29,31 @@ jobs:
         run: python -m pytest -q
       - name: Lint (hard gate)
         run: ruff check .
+
+  cns:
+    # The job above installs only `.[test]`, so tests/test_cns_connector.py
+    # skips there as a module and a green check says nothing about the
+    # connector against the real CNS. This job installs the cns extra and sets
+    # GOVERNANCE_GATEWAY_REQUIRE_CNS=1, which turns a missing cns into a
+    # failure, so the connector tests cannot silently skip here.
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install ruff==0.15.22
+          python -m pip install -e ".[test,cns]"
+      - name: Test with CNS required
+        env:
+          GOVERNANCE_GATEWAY_REQUIRE_CNS: "1"
+        run: python -m pytest -q -rs
