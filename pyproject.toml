@@ -14,9 +14,9 @@ dependencies = []
 test = ["pytest>=8"]
 # Optional: lets the gateway's verdicts be expressed as CNS gate results.
 # governance_gateway imports nothing from CNS unless
-# governance_gateway.cns_connector is used. Pinned to tag v1.9.0.
+# governance_gateway.cns_connector is used. Pinned to tag v2.2.0.
 cns = [
-    "cns @ git+https://github.com/wking53214/CNS.git@v1.9.0",
+    "cns @ git+https://github.com/wking53214/CNS.git@v2.2.0",
 ]
 
 [tool.pytest.ini_options]
