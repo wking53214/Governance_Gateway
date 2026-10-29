@@ -145,7 +145,7 @@ This repo has **zero runtime imports** of sibling packages. Integration is adapt
 Governance_Gateway stands alone: no runtime dependency, nothing imported from CNS when the package loads, and the whole suite passes with CNS absent. If CNS is present, `governance_gateway.cns_connector` expresses the gateway's verdict as a CNS gate result, so it can be resolved alongside gates from other repositories. The package `__init__` does not import the connector, and no module here imports `cns` by statement.
 
 ```
-pip install '.[cns]'    # from a checkout of this repository; CNS is pinned to v1.9.0
+pip install '.[cns]'    # from a checkout of this repository; CNS is pinned to v2.2.0
 ```
 
 ```python

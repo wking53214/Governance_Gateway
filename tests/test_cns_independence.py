@@ -22,7 +22,7 @@ SRC = ROOT / "src"
 
 BLOCK = "import sys; sys.modules['cns'] = None; sys.modules['cns.gate'] = None\n"
 
-CNS_PIN = "v1.9.0"
+CNS_PIN = "v2.2.0"
 
 
 def _run(
