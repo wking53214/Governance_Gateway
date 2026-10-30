@@ -80,6 +80,22 @@ tests/                adversarial, integrity-bypass, unit; CNS independence, jud
 | `GOVERNANCE_VIOLATION` | Dead enum member. |
 | Python 3.11+ | `Authority \| None` union syntax. α/ζ/β/δ advertise 3.9. Mixed floor. |
 
+### Release and test status
+
+Measured 2026-10-30 at main `ad8b644`.
+
+| What | State |
+|---|---|
+| Version | 0.1.0 (`pyproject.toml`) |
+| Tag and GitHub Release | None yet. Tagging is the owner's decision. |
+| CI on main | Green (tests on Python 3.11 and 3.12, with and without CNS, plus ruff 0.15.22) |
+| Tests | 230 passed and 1 skipped without CNS, 417 passed with the `cns` extra installed |
+| CNS pin | The optional `cns` extra is pinned to the tag v2.2.0, the same as the rest of the spine |
+
+### Which doors write
+
+None that create a governed record. `GovernanceGateway.evaluate` judges and returns a result; it stores nothing. The one thing that keeps state is the optional `GateDashboard`, whose `record` method any holder of a reference can call, so its counts are a convenience for an operator and not evidence of what the gateway decided. That is why this repository has no write permission to gate, unlike CCC.
+
 Runnable: `pip install -e ".[test]" && pytest`. Tests cover adversarial integrity bypass. Not a deployed service.
 
 ## 5. Core Invariants & Guarantees
@@ -139,6 +155,12 @@ GovernanceGateway.evaluate
 ```
 
 This repo has **zero runtime imports** of sibling packages. Integration is adapter-side, in observe-perceive. The one exception is the optional CNS connector (section 8), which loads `cns.gate` only when one of its functions is called.
+
+### Place in the evidence spine
+
+The evidence spine is the five repositories a document passes through in order: HERALD reads it and extracts claims, TIE records the evidence, Conservation_Kernel decides whether a root may be admitted, Governance_Gateway judges the admission door, and CCC takes the document into its store. CNS holds the roster that makes the decision, the check that every seat judged the same document, and the one-use guard that lets an approved decision open only the door it judged. `chains/evidence_spine.py` in CNS runs all of it end to end. Measured 2026-10-30 with every repository at main: 30 results, all ok, and exactly one recorded GAP (a kernel built without its guard and called directly), which the script asserts as a stated fact and never skips.
+
+Governance_Gateway judges the admission door (the ALPHA end). It decides accept or refuse and nothing else: the refusal reason travels in the CNS verdict, and the decision about whether the door then opens belongs to the roster.
 
 ## 8. Connecting to CNS (optional)
 
