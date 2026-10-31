@@ -678,3 +678,12 @@ def test_the_test_double_is_no_looser_than_the_real_contract():
         assert not _accepts(cns_gate.subject_digest, content), content
     for content in stricter:
         assert not _accepts(double.subject_digest, content), content
+
+
+def test_the_rejudgment_uses_the_gateway_it_is_given_so_a_verifier_is_honoured():
+    gateway = GovernanceGateway(authority_verifier=lambda authority: False)
+    artifact = make_artifact()
+    verdict = to_cns_result(GateResult.accept(artifact), artifact, gateway=gateway)
+    assert verdict.outcome is cns_gate.GateOutcome.TERMINAL_BREACH
+    assert verdict.reason == INCONSISTENT_VERDICT
+    assert evaluate_to_cns(artifact, gateway).outcome is cns_gate.GateOutcome.TERMINAL_BREACH
