@@ -16,7 +16,7 @@ test = ["pytest>=8"]
 # governance_gateway imports nothing from CNS unless
 # governance_gateway.cns_connector is used. Pinned to tag v2.2.0.
 cns = [
-    "cns @ git+https://github.com/wking53214/CNS.git@v2.2.0",
+    "cns @ git+https://github.com/wking53214/CNS.git@v2.3.0",
 ]
 
 [tool.pytest.ini_options]
