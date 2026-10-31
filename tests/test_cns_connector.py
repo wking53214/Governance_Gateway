@@ -276,6 +276,31 @@ def test_a_self_contradicting_native_verdict_never_maps_to_pass():
         assert verdict.reason == INCONSISTENT_VERDICT
 
 
+def test_a_caller_built_accept_on_a_tampered_artifact_is_not_a_pass():
+    """GateResult.accept is callable by anyone; the connector must re-judge, not trust it."""
+    tampered = make_artifact(payload={"message": "tampered"})  # integrity left stale
+    assert evaluate_to_cns(tampered).outcome is cns_gate.GateOutcome.TERMINAL_BREACH
+    verdict = to_cns_result(GateResult.accept(tampered), tampered)
+    assert verdict.outcome is cns_gate.GateOutcome.TERMINAL_BREACH
+    assert verdict.reason == INCONSISTENT_VERDICT
+    assert verdict.blocking()
+
+
+def test_a_caller_built_accept_on_a_valid_artifact_still_passes():
+    artifact = make_artifact()
+    verdict = to_cns_result(GateResult.accept(artifact), artifact)
+    assert verdict.outcome is cns_gate.GateOutcome.PASS
+
+
+def test_the_rejudgment_does_not_touch_an_attached_dashboard():
+    from governance_gateway.dashboard import GateDashboard
+
+    dashboard = GateDashboard()
+    gateway = GovernanceGateway(dashboard)
+    evaluate_to_cns(make_artifact(), gateway)
+    assert dashboard.snapshot()["total_evaluations"] == 1  # the re-judgment did not record a second
+
+
 def test_a_refusal_with_no_reason_is_still_a_refusal():
     verdict = to_cns_result(GateResult(False), make_artifact())
     assert verdict.outcome is cns_gate.GateOutcome.TERMINAL_BREACH
