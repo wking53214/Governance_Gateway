@@ -480,9 +480,19 @@ def _refusal_reason(result: GateResult) -> str:
 
 
 def to_cns_result(
-    result: GateResult, candidate: object, *, subject: str | None = None
+    result: GateResult,
+    candidate: object,
+    *,
+    subject: str | None = None,
+    gateway: GovernanceGateway | None = None,
 ) -> Any:
-    """Translate the gateway's verdict on ``candidate`` into a ``cns.gate.GateResult``."""
+    """Translate the gateway's verdict on ``candidate`` into a ``cns.gate.GateResult``.
+
+    A coherent accept is not taken on trust: a ``GateResult`` can be built by
+    any caller, so the gateway's own judgment (``gateway``, default a plain
+    ``GovernanceGateway``) is re-run on ``candidate``. If it does not also
+    accept, the result is ``TERMINAL_BREACH`` with ``INCONSISTENT_VERDICT``.
+    """
     gate = _cns_gate()
     if not isinstance(result, GateResult):
         raise TypeError(
@@ -495,7 +505,11 @@ def to_cns_result(
         and result.artifact is candidate
     )
     if coherent_accept:
-        outcome, reason = gate.GateOutcome.PASS, ""
+        judge = gateway if gateway is not None else GovernanceGateway()
+        if judge._judge(candidate).accepted is True:  # no dashboard side effect
+            outcome, reason = gate.GateOutcome.PASS, ""
+        else:
+            outcome, reason = gate.GateOutcome.TERMINAL_BREACH, INCONSISTENT_VERDICT
     else:
         outcome, reason = gate.GateOutcome.TERMINAL_BREACH, _refusal_reason(result)
     return gate.GateResult(
@@ -533,7 +547,10 @@ class CnsGate:
 
     def check(self, candidate: object) -> Any:
         return to_cns_result(
-            self._inner.evaluate(candidate), candidate, subject=self._subject
+            self._inner.evaluate(candidate),
+            candidate,
+            subject=self._subject,
+            gateway=self._inner,
         )
 
 
@@ -561,4 +578,6 @@ def evaluate_to_cns(
     """
     _cns_gate()
     gateway = gateway if gateway is not None else GovernanceGateway()
-    return to_cns_result(gateway.evaluate(candidate), candidate, subject=subject)
+    return to_cns_result(
+        gateway.evaluate(candidate), candidate, subject=subject, gateway=gateway
+    )

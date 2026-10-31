@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Callable
 import re
 
 from .dashboard import GateDashboard
@@ -15,9 +15,18 @@ _HEX64 = re.compile(r"^[0-9a-f]{64}$")
 class GovernanceGateway:
     """Validate governed artifacts without transforming them."""
 
-    def __init__(self, dashboard: GateDashboard | None = None) -> None:
+    def __init__(
+        self,
+        dashboard: GateDashboard | None = None,
+        authority_verifier: Callable[[Authority], bool] | None = None,
+    ) -> None:
         #: Optional outcome counter. Records only; never changes a decision.
         self.dashboard = dashboard
+        #: Optional check that an Authority is genuinely held (registered, not
+        #: expired). None keeps the original behaviour: any Authority passes.
+        #: When set, anything but a True return, or any exception, refuses the
+        #: artifact with MISSING_AUTHORITY.
+        self.authority_verifier = authority_verifier
 
     def evaluate(self, artifact: Any) -> GateResult:
         """Decide accept or reject, then record the outcome if a dashboard is attached."""
@@ -41,6 +50,14 @@ class GovernanceGateway:
 
             if not isinstance(artifact.authority, Authority):
                 return GateResult.reject(GateReason.MISSING_AUTHORITY)
+
+            if self.authority_verifier is not None:
+                try:
+                    verified = self.authority_verifier(artifact.authority) is True
+                except Exception:
+                    verified = False
+                if not verified:
+                    return GateResult.reject(GateReason.MISSING_AUTHORITY)
 
             if not isinstance(artifact.epistemic_status, EpistemicStatus):
                 return GateResult.reject(GateReason.INVALID_EPISTEMIC_STATE)
