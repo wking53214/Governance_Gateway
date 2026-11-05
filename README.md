@@ -9,6 +9,7 @@ Adversarially tested, domain-independent **admission boundary** for governed art
 **Responsibilities (all in `src/governance_gateway/gateway.py` and `models.py`).**
 - Refuse anything that is not an `Artifact`, has a blank id, empty provenance, a wrong-typed authority, epistemic status or scope, or a malformed or mismatched digest (recomputed, never trusted).
 - Optionally ask a caller-supplied `authority_verifier(Authority) -> bool` whether the authority is genuinely held. Off by default; when set, anything other than `True`, or any exception, is `MISSING_AUTHORITY`.
+- Profiles (`GatewayProfile`, keyword `profile=`). `DEVELOPMENT` is the default and keeps the behaviour above: the digest is unkeyed SHA-256, so without a verifier an edited payload re-sealed under any actor with `EXECUTE` scope passes. `PRODUCTION` refuses to construct (`ValueError`) unless an explicit callable `authority_verifier` is given; there is no default verifier and no key, a verifier removed after construction refuses every artifact with `MISSING_AUTHORITY`, the profile is read-only, and an unknown profile is a `ValueError`. Production deployments should pass `profile=GatewayProfile.PRODUCTION`.
 - Optionally count outcomes in a `GateDashboard` (records only, changes no decision).
 - Optionally (extra `cns`) express its verdict as a CNS gate result at the ALPHA end (`cns_connector.py`).
 
@@ -119,7 +120,7 @@ tests/                adversarial, integrity-bypass, unit, dashboard, authority_
 ## 3. What It Does NOT Do / Non-Goals
 
 - Does **not** decide policy permission (PERCEIVE).
-- Does **not** issue, revoke, or verify cryptographic authorization grants. `Authority.grant` is a non-empty string; there is no grant registry, KMS, or signature over the grant. A caller may supply `authority_verifier` (a callable) to check that an `Authority` is held; the package ships none, and unset means any `Authority` passes.
+- Does **not** issue, revoke, or verify cryptographic authorization grants. `Authority.grant` is a non-empty string; there is no grant registry, KMS, or signature over the grant. A caller may supply `authority_verifier` (a callable) to check that an `Authority` is held; the package ships none, and unset means any `Authority` passes in the default `DEVELOPMENT` profile. The `PRODUCTION` profile will not run without one.
 - Does **not** transform, normalize, or "fix" invalid artifacts.
 - Does **not** authenticate the producer. SHA-256 is integrity, not authenticity. An attacker who can replace both content and digest wins.
 - Does **not** persist, ledger, or hash-chain across artifacts.

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from enum import Enum
 from typing import Any, Callable
 import re
 
@@ -12,6 +13,23 @@ from .models import Artifact, Authority, EpistemicStatus, GateReason, GateResult
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")
 
 
+class GatewayProfile(str, Enum):
+    """How strictly the gateway treats authority.
+
+    DEVELOPMENT (the default) keeps the original behaviour: the integrity
+    digest is unkeyed, so without an ``authority_verifier`` any well-formed
+    ``Authority`` passes, including one on an edited and re-sealed artifact.
+
+    PRODUCTION refuses to build a gateway without a caller-supplied callable
+    ``authority_verifier``. The package ships no default verifier and no key,
+    and a production gateway whose verifier is later removed refuses every
+    artifact with ``MISSING_AUTHORITY``.
+    """
+
+    DEVELOPMENT = "development"
+    PRODUCTION = "production"
+
+
 class GovernanceGateway:
     """Validate governed artifacts without transforming them."""
 
@@ -19,7 +37,19 @@ class GovernanceGateway:
         self,
         dashboard: GateDashboard | None = None,
         authority_verifier: Callable[[Authority], bool] | None = None,
+        *,
+        profile: GatewayProfile | str = GatewayProfile.DEVELOPMENT,
     ) -> None:
+        try:
+            resolved = GatewayProfile(profile)
+        except ValueError:
+            raise ValueError(f"unknown gateway profile: {profile!r}") from None
+        if resolved is GatewayProfile.PRODUCTION and not callable(authority_verifier):
+            raise ValueError(
+                "the production profile requires an explicit callable authority_verifier;"
+                " there is no default"
+            )
+        self._profile = resolved
         #: Optional outcome counter. Records only; never changes a decision.
         self.dashboard = dashboard
         #: Optional check that an Authority is genuinely held (registered, not
@@ -27,6 +57,11 @@ class GovernanceGateway:
         #: When set, anything but a True return, or any exception, refuses the
         #: artifact with MISSING_AUTHORITY.
         self.authority_verifier = authority_verifier
+
+    @property
+    def profile(self) -> GatewayProfile:
+        """The profile fixed at construction. Read-only."""
+        return self._profile
 
     def evaluate(self, artifact: Any) -> GateResult:
         """Decide accept or reject, then record the outcome if a dashboard is attached."""
@@ -49,6 +84,9 @@ class GovernanceGateway:
                 return GateResult.reject(GateReason.MISSING_PROVENANCE)
 
             if not isinstance(artifact.authority, Authority):
+                return GateResult.reject(GateReason.MISSING_AUTHORITY)
+
+            if self._profile is GatewayProfile.PRODUCTION and not callable(self.authority_verifier):
                 return GateResult.reject(GateReason.MISSING_AUTHORITY)
 
             if self.authority_verifier is not None:
