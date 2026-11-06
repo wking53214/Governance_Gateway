@@ -54,9 +54,9 @@ Adversarially tested, domain-independent **admission boundary** for governed art
 
 It is partial because only the gate shape is used. A real spine seat is exercised by CNS's own script, not by a test here.
 
-**Maturity and limitations (measured 2026-10-31 on main `4339185`, Python 3.13, pytest 9.2.0, CNS 2.3.0 from a local checkout).**
-- `python -m pytest`: 432 passed, 0 failed, 0 skipped. `GOVERNANCE_GATEWAY_REQUIRE_CNS=1 python -m pytest`: 432 passed.
-- With the `cns` import blocked (`sys.modules['cns'] = None`): 241 passed, 1 skipped (the real-CNS connector module).
+**Maturity and limitations (measured 2026-11-06 on main `4e2564e`, Python 3.13, CNS 2.3.0 tag).**
+- `python -m pytest`: 449 passed, 0 failed, 0 skipped. `GOVERNANCE_GATEWAY_REQUIRE_CNS=1 python -m pytest`: 449 passed.
+- With the `cns` import blocked (`sys.modules['cns'] = None`): 258 passed, 1 skipped (the real-CNS connector module).
 - Version `0.1.0`, untagged. Library only: no service, no authn, no refusal log. Without an `authority_verifier`, any non-empty actor and grant string passes. `GOVERNANCE_VIOLATION` is never produced.
 
 ## 1. Pipeline Position & Role
@@ -147,7 +147,7 @@ Measured 2026-10-31 at main `4339185`. Commands and counts: see "Role in the STA
 | Version | 0.1.0 (`pyproject.toml`) |
 | Tag and GitHub Release | None yet. Tagging is the owner's decision. |
 | CI on main | Green on 2026-10-30 (tests on Python 3.11 and 3.12, with and without CNS, plus ruff 0.15.22) |
-| Tests | 241 passed and 1 skipped without CNS, 432 passed with CNS installed |
+| Tests | 258 passed and 1 skipped without CNS, 449 passed with CNS installed (2026-11-06) |
 | CNS pin | The optional `cns` extra is pinned to the tag v2.3.0 in `pyproject.toml` |
 
 ### Which doors write
