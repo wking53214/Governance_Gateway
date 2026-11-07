@@ -90,14 +90,13 @@ candidate that is not an ``Artifact`` (its type name), a missing attribute
 long for CPython to print, a value of an unsupported type (its type name), a
 container that contains itself (the whole field becomes ``{"cycle": True}``),
 and a value whose inspection itself raises (``{"undescribable": True}``). The
-gateway refuses each of these except the last, so none of them is content a
-``PASS`` rests on.
+gateway refuses each of these, so none of them is content a ``PASS`` rests on.
 
 Two things this connector does not do. It does not catch an exception the
-gateway itself raises (for example ``RecursionError`` on a circular payload
-that is otherwise valid): that is the gateway's behaviour, it is not a
-``PASS``, and translating it into a verdict would change what the gateway
-decided. And the digest is tamper-evidence, not authentication: anyone who
+gateway itself raises. The gateway now returns a refusal for ordinary errors,
+so this only happens for failures outside its own handling: that is the
+gateway's behaviour, it is not a ``PASS``, and translating it into a verdict
+would change what the gateway decided. And the digest is tamper-evidence, not authentication: anyone who
 can recompute it can forge it, exactly as the gateway's own integrity
 digest can be forged (README section 3).
 
