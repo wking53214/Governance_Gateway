@@ -10,14 +10,14 @@ Adversarially tested, domain-independent **admission boundary** for governed art
 
 **Responsibilities (all in `src/governance_gateway/gateway.py` and `models.py`).**
 - Refuse anything that is not an `Artifact`, has a blank id, empty provenance, a wrong-typed authority, epistemic status or scope, or a malformed or mismatched digest (recomputed, never trusted).
-- Optionally ask a caller-supplied `authority_verifier(Authority) -> bool` whether the authority is genuinely held. Off by default; when set, anything other than `True`, or any exception, is `MISSING_AUTHORITY`.
+- Optionally ask a caller-supplied `authority_verifier(Authority) -> bool` whether the authority is genuinely held. Off by default. When set: literal `True` accepts; literal `False` is refused as `MISSING_AUTHORITY`; any other return value (a malformed response) or an exception is refused as `AUTHORITY_VERIFIER_UNAVAILABLE`, because a failure of the verifier says nothing about the grant. The verifier receives only the `Authority` (actor and grant), not the artifact; a richer request is deferred (see `docs/AUTHORITY_CONTRACT.md`).
 - Profiles (`GatewayProfile`, keyword `profile=`). `DEVELOPMENT` is the default and keeps the behaviour above: the digest is unkeyed SHA-256, so without a verifier an edited payload re-sealed under any actor with `EXECUTE` scope passes. `PRODUCTION` refuses to construct (`ValueError`) unless an explicit callable `authority_verifier` is given; there is no default verifier and no key, a verifier removed after construction refuses every artifact with `MISSING_AUTHORITY`, the profile is read-only, and an unknown profile is a `ValueError`. Production deployments should pass `profile=GatewayProfile.PRODUCTION`.
 - Optionally count outcomes in a `GateDashboard` (records only, changes no decision).
 - Optionally (extra `cns`) express its verdict as a CNS gate result at the ALPHA end (`cns_connector.py`).
 
 **Inputs and outputs.** In: an `Artifact` (or anything, which is refused as `INVALID_ARTIFACT`). Out: a frozen `GateResult(accepted, artifact, reason)`. With the connector: a `cns.gate.GateResult` bound to the artifact by `subject_digest`. It writes nothing durable.
 
-**Owns.** The artifact contract and its canonical digest; the seven-member refusal vocabulary; the decision at the admission door; the translation of that decision into CNS's gate shape (`cns_connector.py`).
+**Owns.** The artifact contract and its canonical digest; the refusal vocabulary (seven reason codes); the decision at the admission door; the translation of that decision into CNS's gate shape (`cns_connector.py`).
 
 **Four terms, used with these meanings throughout.** *Authority record*: the `actor` and `grant` strings an artifact carries; a claim, not proof. *Authority verification*: a check by a trusted verifier that the claim is genuine; optional here, and the verifier is the caller's. *Authorization*: permission to perform a specific operation; this package does not grant it. *Admission*: accepting an artifact into the next stage; this is what the gateway decides.
 
@@ -58,10 +58,11 @@ Adversarially tested, domain-independent **admission boundary** for governed art
 
 It is partial because only the gate shape is used. A real spine seat is exercised by CNS's own script, not by a test here.
 
-**Maturity and limitations (measured 2026-11-07 on main `cd9cc62`, Python 3.13, CNS 2.3.0 tag).**
-- `python -m pytest` with CNS installed: 452 passed, 0 failed, 0 skipped.
-- With the `cns` import blocked (`sys.modules['cns'] = None`): 261 passed, 1 skipped (the real-CNS connector module).
-- Version `0.1.0`, untagged. Library only: no service, no authn, no refusal log. Without an `authority_verifier`, any non-empty actor and grant string passes. `GOVERNANCE_VIOLATION` is never produced.
+**Maturity and limitations (measured 2026-11-07 locally, Python 3.13, CNS 2.3.0 tag; commit `95e5015` on branch `race/governance-gateway-closure-2026-11-07` plus uncommitted changes).**
+- `python -m pytest` with CNS installed: 465 passed, 0 failed, 0 skipped. `GOVERNANCE_GATEWAY_REQUIRE_CNS=1 python -m pytest`: 465 passed.
+- With the `cns` import blocked (`sys.modules['cns'] = None`): 274 passed, 1 skipped (the real-CNS connector module).
+- Historical: at `cd9cc62` the counts were 459 and 268 (before the verifier and dashboard tests were added). Not a current result.
+- Version `0.1.0`, untagged. Library only: no service, no authn, no refusal log. Without an `authority_verifier`, any non-empty actor and grant string passes. Deep (over 4,000 levels, or cyclic) payloads cannot be sealed: building the artifact raises `RecursionError`, before any gateway verdict exists.
 
 ## 1. Pipeline Position & Role
 
@@ -105,9 +106,9 @@ Integrity is `SHA-256(canonical_json({artifact_id, payload, provenance, epistemi
 
 ### Rejection vocabulary
 
-`MISSING_PROVENANCE` · `MISSING_AUTHORITY` · `INVALID_EPISTEMIC_STATE` · `INVALID_SCOPE` · `INTEGRITY_FAILURE` · `INVALID_ARTIFACT` · `GOVERNANCE_VIOLATION`
+`MISSING_PROVENANCE` · `MISSING_AUTHORITY` · `INVALID_EPISTEMIC_STATE` · `INVALID_SCOPE` · `INTEGRITY_FAILURE` · `INVALID_ARTIFACT` · `AUTHORITY_VERIFIER_UNAVAILABLE`
 
-`GOVERNANCE_VIOLATION` is defined and unused by `evaluate()` today. It exists for a future caller-supplied policy hook that this package does not implement.
+The vocabulary has seven reason codes. `GOVERNANCE_VIOLATION` was removed on 2026-11-07: nothing produced it, and it had no admission-boundary purpose.
 
 ### Layout
 
@@ -124,7 +125,7 @@ tests/                adversarial, integrity-bypass, unit, dashboard, authority_
 ## 3. What It Does NOT Do / Non-Goals
 
 - Does **not** decide policy permission (PERCEIVE).
-- Does **not** issue, revoke, or verify cryptographic authorization grants. `Authority.grant` is a non-empty string; there is no grant registry, KMS, or signature over the grant. A caller may supply `authority_verifier` (a callable) to check that an `Authority` is held; the package ships none, and unset means any `Authority` passes in the default `DEVELOPMENT` profile. The `PRODUCTION` profile will not run without one.
+- Does **not** issue, revoke, or verify cryptographic authorization grants. `Authority.grant` is a non-empty string; there is no grant registry, KMS, or signature over the grant. A caller may supply `authority_verifier` (a callable) to check that an `Authority` is held; the package ships none, and unset means any `Authority` passes in the default `DEVELOPMENT` profile. The `PRODUCTION` profile will not run without one. Revocation, expiry, issuer trust, signatures, actor/action binding and replay protection are NOT IMPLEMENTED; see `docs/AUTHORITY_CONTRACT.md` for the status of each.
 - Does **not** transform, normalize, or "fix" invalid artifacts.
 - Does **not** authenticate the producer. SHA-256 is integrity, not authenticity. An attacker who can replace both content and digest wins.
 - Does **not** persist, ledger, or hash-chain across artifacts.
@@ -135,23 +136,22 @@ tests/                adversarial, integrity-bypass, unit, dashboard, authority_
 
 | Claim | Reality |
 |---|---|
-| "Authorization is explicit" | `Authority.actor` + `Authority.grant` are required non-empty strings. By default no check that the grant exists, is unexpired, is scoped, or was issued by a real authority. An optional caller-supplied `authority_verifier` can refuse (fail-closed); nothing is bundled and `observe-perceive` does not set one. |
+| "Authorization is explicit" | `Authority.actor` + `Authority.grant` are required non-empty strings. By default no check that the grant exists, is unexpired, is scoped, or was issued by a real authority. An optional caller-supplied `authority_verifier` can refuse (fail-closed); nothing is bundled and `observe-perceive` does not set one. Expiry and revocation are the verifier's job; this package has no expiry field. |
 | Production admission door | Runnable library with CI (`tests.yml`). No network service, no authn, no rate limit, no durable log of refusals. |
 | Scope enforcement | Gateway validates the enum. Downstream execution-scope binding is the orchestrator's job (`observe-perceive` scope-binding tests). This package cannot stop a caller who ignores `GateResult`. |
 | Epistemic vocab | Gateway vocab (`FACT`/`INFERENCE`/…) is **not identical** to Conservation Kernel's (`FACT`/`OBSERVATION`/`ESTIMATED`/`CONFLICTED`/…). Adapters must map. Drift is a real seam. |
-| `GOVERNANCE_VIOLATION` | Dead enum member. |
 | Python 3.11+ | `Authority \| None` union syntax. α/ζ/β/δ declare Python 3.10 or newer in their project files (checked 2026-11-06). Mixed floor. |
 
 ### Release and test status
 
-Snapshot: main `cd9cc62`, 2026-11-07. The maturity section above gives the commands and counts. Older measurements are not repeated here.
+Snapshot labels, 2026-11-07. **Current main** `d7b2749`: CI green on Python 3.11 and 3.12, with and without CNS, verified against GitHub check runs. **Branch measured here** `95e5015` plus uncommitted changes: test counts below were produced from this working tree, not from CI.
 
 | What | State |
 |---|---|
 | Version | 0.1.0 (`pyproject.toml`) |
 | Tag and GitHub Release | None yet. Tagging is the owner's decision. |
-| CI on main | Green at `cd9cc62` (tests on Python 3.11 and 3.12, with and without CNS, plus ruff 0.15.22) |
-| Tests | 261 passed and 1 skipped without CNS, 452 passed with CNS installed (2026-11-07, `cd9cc62`) |
+| CI on main | Green at `d7b2749` (current main; verified against GitHub check runs 2026-11-07). Earlier green run at `cd9cc62` is historical. Branch `95e5015` is not yet through CI. |
+| Tests | 274 passed and 1 skipped without CNS, 465 passed with CNS installed (2026-11-07, `95e5015` plus uncommitted changes, measured locally) |
 | CNS pin | The optional `cns` extra is pinned to the tag v2.3.0 in `pyproject.toml` |
 
 ### Which doors write
@@ -235,9 +235,15 @@ pip install '.[cns]'    # from a checkout of this repository; CNS is pinned to v
 ```
 
 ```python
+from governance_gateway import Artifact, Authority, EpistemicStatus, Scope
 from governance_gateway.cns_connector import evaluate_to_cns
 from cns.gate import resolve
 
+artifact = Artifact.create(
+    artifact_id="a-1", payload={"message": "hello"}, provenance={"source": "human"},
+    epistemic_status=EpistemicStatus.INFERENCE,
+    authority=Authority(actor="alice", grant="review"), scope=Scope.READ_ONLY,
+)
 verdict = evaluate_to_cns(artifact)   # a cns.gate.GateResult, bound to the artifact
 resolve([verdict])                    # PASS or TERMINAL_BREACH, fail-closed
 ```
@@ -254,7 +260,12 @@ How the content is made digestible, without losing what the gateway accepts. Sca
 
 The connector translates and decides nothing. If the gateway itself raises, which it no longer does for ordinary errors, the connector raises too; that is never a `PASS`.
 
-Without CNS installed, the connector's functions raise `CnsNotInstalled` with the install command. The same error says so when CNS is installed but cannot be imported or lacks what the connector uses from `cns.gate`. The connector needs CNS v1.4.0 or newer. Nothing else in the package changes.
+Without CNS installed, the connector's functions raise `CnsNotInstalled` with the install command. The same error says so when CNS is installed but cannot be imported or lacks what the connector uses from `cns.gate`. The connector checks for the `cns.gate` names it uses (`GateChain`, `GateOutcome`, `GatePosition`, `GateResult`, `subject_digest`); it does not check a version number. Nothing else in the package changes.
+
+**CNS compatibility, three separate facts:**
+- **Tested and pinned:** CNS v2.3.0 (`pyproject.toml`). The only version the tests run against.
+- **Declared minimum interface:** none declared as a version number. The connector declares the names above. A code comment says `subject_digest` arrived in CNS 1.2.0; that is **not verified** here.
+- **Verified compatibility range:** v2.3.0 only. No other CNS version was installed or tested.
 
 Tests: `tests/test_cns_independence.py`, `tests/test_cns_judged_content.py` and `tests/test_cns_mapping_double.py` need no CNS and run everywhere, CI included (the mapping tests run against a stand-in for `cns.gate`, `tests/cns_gate_double.py`). `tests/test_cns_connector.py` runs against the real CNS and skips when it is not installed; it also checks that the stand-in is no looser than the real contract. With `GOVERNANCE_GATEWAY_REQUIRE_CNS=1` a missing CNS fails the run instead of skipping it; CI's `cns` job installs the extra and sets it.
 
