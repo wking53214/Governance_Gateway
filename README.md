@@ -35,7 +35,7 @@ Adversarially tested, domain-independent **admission boundary** for governed art
       Each of the five repositories above supplies one gate; CNS never replaces any of them.
 ```
 
-- [CNS](https://github.com/wking53214/CNS): shared gate contract. `chains/evidence_spine.py` runs HERALD, TIE, Conservation_Kernel, this gateway and CCC on one document and imports `governance_gateway.cns_connector.CnsGate` (`chains/evidence_spine.py:142`). That script, not this repository, wires the spine.
+- [CNS](https://github.com/wking53214/CNS): shared gate contract. `chains/evidence_spine.py` runs HERALD, TIE, Conservation_Kernel, this gateway and CCC on one document and imports `governance_gateway.cns_connector.CnsGate` (`chains/evidence_spine.py:166`). That script, not this repository, wires the spine.
 - [Conservation_Kernel](https://github.com/wking53214/Conservation_Kernel): judges a root artifact built from evidence. Its epistemic vocabulary differs from this gateway's; a caller maps between them.
 - [CCC](https://github.com/wking53214/CCC): the store behind the door. It has its own write-permission gate; this gateway has no write to gate.
 - [HERALD](https://github.com/wking53214/HERALD) and [TIE](https://github.com/wking53214/TIE): upstream. This package imports neither and does not read their output.
