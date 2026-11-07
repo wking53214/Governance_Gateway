@@ -55,10 +55,10 @@ class GovernanceGateway:
         self.dashboard = dashboard
         #: Optional check that an Authority is genuinely held (registered, not
         #: expired). None keeps the original behaviour: any Authority passes.
-        #: When set, a return value other than literal True refuses the artifact
-        #: with MISSING_AUTHORITY. An exception from the verifier refuses it with
-        #: AUTHORITY_VERIFIER_UNAVAILABLE, because an outage is not proof the grant
-        #: is invalid. The verifier receives only the Authority.
+        #: When set: literal True accepts; literal False refuses with
+        #: MISSING_AUTHORITY; any other return value, or an exception, refuses
+        #: with AUTHORITY_VERIFIER_UNAVAILABLE (a malformed response or outage is
+        #: not proof the grant is invalid). The verifier receives only the Authority.
         self.authority_verifier = authority_verifier
 
     @property
@@ -126,8 +126,14 @@ class GovernanceGateway:
                 except Exception:
                     # A fault or outage in the verifier says nothing about the grant.
                     return GateResult.reject(GateReason.AUTHORITY_VERIFIER_UNAVAILABLE)
-                if answer is not True:
+                if answer is True:
+                    pass
+                elif answer is False:
                     return GateResult.reject(GateReason.MISSING_AUTHORITY)
+                else:
+                    # Neither True nor False: a malformed response is a verifier
+                    # failure, not evidence about the grant. Fail closed.
+                    return GateResult.reject(GateReason.AUTHORITY_VERIFIER_UNAVAILABLE)
 
             return GateResult.accept(artifact)
         except Exception:

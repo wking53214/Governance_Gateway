@@ -90,9 +90,15 @@ def test_a_verifier_outage_in_production_refuses_and_never_accepts():
     assert result.reason is GateReason.AUTHORITY_VERIFIER_UNAVAILABLE
 
 
-@pytest.mark.parametrize("answer", [None, 1, "yes", [True]], ids=repr)
-def test_only_a_true_answer_counts_as_verified(answer):
+@pytest.mark.parametrize("answer", [None, 0, 1, "yes", [True], 1.0], ids=repr)
+def test_a_malformed_answer_is_a_verifier_failure_not_a_verdict_on_the_grant(answer):
     result = GovernanceGateway(authority_verifier=lambda a: answer).evaluate(make_artifact(GOOD))
+    assert result.accepted is False
+    assert result.reason is GateReason.AUTHORITY_VERIFIER_UNAVAILABLE
+
+
+def test_an_explicit_false_is_a_refusal_of_the_grant():
+    result = GovernanceGateway(authority_verifier=lambda a: False).evaluate(make_artifact(GOOD))
     assert result.accepted is False
     assert result.reason is GateReason.MISSING_AUTHORITY
 

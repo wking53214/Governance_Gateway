@@ -71,9 +71,18 @@ The gateway additionally requires integrity to be exactly a 64-character lowerca
 
 Missing, malformed, or contradictory governance state must fail closed: `REJECT`, never silent `ACCEPT`. Any ordinary error raised while the gateway judges an artifact, including one raised while inspecting a caller-supplied object, is also returned as `REJECT`. The gateway does not raise into the caller for an object it is asked to judge, and never returns `ACCEPT` for one. (Construction of an `Artifact` is separate; see Construction boundary.)
 
+## What acceptance means
+
+An `ACCEPT` means only that the artifact passed the gateway's checks: it is well-formed, its digest matches its content, and, if a verifier was supplied, the verifier said `True`. It does **not** mean:
+- the artifact or its provenance was authenticated (the digest is unkeyed and can be recomputed by anyone);
+- the actor was authorized to perform any operation (the package does not model operations);
+- the artifact is safe to execute or true (epistemic status is recorded, not checked).
+
+Acting on an accepted artifact is the caller's decision, and the caller must check scope and action itself.
+
 ## Verifier failure semantics
 
-- An `authority_verifier` that returns anything other than literal `True` refuses with `MISSING_AUTHORITY`.
+- An `authority_verifier` that returns literal `True` accepts the authority. Literal `False` refuses with `MISSING_AUTHORITY`. Any other return value refuses with `AUTHORITY_VERIFIER_UNAVAILABLE`, as a malformed response.
 - An `authority_verifier` that raises refuses with `AUTHORITY_VERIFIER_UNAVAILABLE`. Its exception text is not in the verdict.
 - The verifier is called only after the artifact passes the integrity check.
 - Neither outcome ever produces `ACCEPT`.

@@ -93,3 +93,61 @@ def test_dashboard_never_changes_the_decision():
 
 def test_no_dashboard_by_default():
     assert GovernanceGateway().dashboard is None
+
+
+class _RaisingDashboard:
+    def __init__(self):
+        self.calls = 0
+
+    def record(self, result):
+        self.calls += 1
+        raise RuntimeError("dashboard storage down: internal-detail-123")
+
+
+def _accepted_artifact():
+    from governance_gateway import Artifact, Authority, EpistemicStatus, Scope
+
+    return Artifact.create(
+        artifact_id="dash-ok",
+        payload={"k": "v"},
+        provenance={"src": "t"},
+        epistemic_status=EpistemicStatus.FACT,
+        authority=Authority("actor", "grant"),
+        scope=Scope.READ_ONLY,
+    )
+
+
+def test_a_failing_dashboard_keeps_an_accepted_verdict_and_logs_it(caplog):
+    from governance_gateway import GovernanceGateway
+
+    dashboard = _RaisingDashboard()
+    gateway = GovernanceGateway(dashboard=dashboard)
+    with caplog.at_level("ERROR", logger="governance_gateway.gateway"):
+        result = gateway.evaluate(_accepted_artifact())
+    assert result.accepted is True
+    assert result.reason is None
+    assert dashboard.calls == 1
+    assert any("dashboard failed to record a decision" in r.getMessage() for r in caplog.records)
+    assert any(r.exc_info is not None for r in caplog.records)
+
+
+def test_a_failing_dashboard_keeps_a_rejected_verdict_and_logs_it(caplog):
+    from governance_gateway import GateReason, GovernanceGateway
+
+    dashboard = _RaisingDashboard()
+    gateway = GovernanceGateway(dashboard=dashboard)
+    with caplog.at_level("ERROR", logger="governance_gateway.gateway"):
+        result = gateway.evaluate("not an artifact")
+    assert result.accepted is False
+    assert result.reason is GateReason.INVALID_ARTIFACT
+    assert dashboard.calls == 1
+    assert any("dashboard failed to record a decision" in r.getMessage() for r in caplog.records)
+
+
+def test_the_dashboard_exception_text_does_not_reach_the_caller_or_the_verdict(caplog):
+    from governance_gateway import GovernanceGateway
+
+    gateway = GovernanceGateway(dashboard=_RaisingDashboard())
+    with caplog.at_level("ERROR", logger="governance_gateway.gateway"):
+        result = gateway.evaluate(_accepted_artifact())
+    assert "internal-detail-123" not in repr(result)

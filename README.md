@@ -10,7 +10,7 @@ Adversarially tested, domain-independent **admission boundary** for governed art
 
 **Responsibilities (all in `src/governance_gateway/gateway.py` and `models.py`).**
 - Refuse anything that is not an `Artifact`, has a blank id, empty provenance, a wrong-typed authority, epistemic status or scope, or a malformed or mismatched digest (recomputed, never trusted).
-- Optionally ask a caller-supplied `authority_verifier(Authority) -> bool` whether the authority is genuinely held. Off by default. When set: a return value that is not literally `True` is refused as `MISSING_AUTHORITY`; an exception from the verifier is refused as `AUTHORITY_VERIFIER_UNAVAILABLE`, because an outage says nothing about the grant. The verifier receives only the `Authority` (actor and grant), not the artifact; a richer request is deferred (see `docs/AUTHORITY_CONTRACT.md`).
+- Optionally ask a caller-supplied `authority_verifier(Authority) -> bool` whether the authority is genuinely held. Off by default. When set: literal `True` accepts; literal `False` is refused as `MISSING_AUTHORITY`; any other return value (a malformed response) or an exception is refused as `AUTHORITY_VERIFIER_UNAVAILABLE`, because a failure of the verifier says nothing about the grant. The verifier receives only the `Authority` (actor and grant), not the artifact; a richer request is deferred (see `docs/AUTHORITY_CONTRACT.md`).
 - Profiles (`GatewayProfile`, keyword `profile=`). `DEVELOPMENT` is the default and keeps the behaviour above: the digest is unkeyed SHA-256, so without a verifier an edited payload re-sealed under any actor with `EXECUTE` scope passes. `PRODUCTION` refuses to construct (`ValueError`) unless an explicit callable `authority_verifier` is given; there is no default verifier and no key, a verifier removed after construction refuses every artifact with `MISSING_AUTHORITY`, the profile is read-only, and an unknown profile is a `ValueError`. Production deployments should pass `profile=GatewayProfile.PRODUCTION`.
 - Optionally count outcomes in a `GateDashboard` (records only, changes no decision).
 - Optionally (extra `cns`) express its verdict as a CNS gate result at the ALPHA end (`cns_connector.py`).
@@ -58,9 +58,10 @@ Adversarially tested, domain-independent **admission boundary** for governed art
 
 It is partial because only the gate shape is used. A real spine seat is exercised by CNS's own script, not by a test here.
 
-**Maturity and limitations (measured 2026-11-07, Python 3.13, CNS 2.3.0 tag; base commit `cd9cc62` plus uncommitted working-tree changes on branch `race/governance-gateway-closure-2026-11-07`).**
-- `python -m pytest` with CNS installed: 459 passed, 0 failed, 0 skipped.
-- With the `cns` import blocked (`sys.modules['cns'] = None`): 268 passed, 1 skipped (the real-CNS connector module).
+**Maturity and limitations (measured 2026-11-07 locally, Python 3.13, CNS 2.3.0 tag; commit `95e5015` on branch `race/governance-gateway-closure-2026-11-07` plus uncommitted changes).**
+- `python -m pytest` with CNS installed: 465 passed, 0 failed, 0 skipped. `GOVERNANCE_GATEWAY_REQUIRE_CNS=1 python -m pytest`: 465 passed.
+- With the `cns` import blocked (`sys.modules['cns'] = None`): 274 passed, 1 skipped (the real-CNS connector module).
+- Historical: at `cd9cc62` the counts were 459 and 268 (before the verifier and dashboard tests were added). Not a current result.
 - Version `0.1.0`, untagged. Library only: no service, no authn, no refusal log. Without an `authority_verifier`, any non-empty actor and grant string passes. Deep (over 4,000 levels, or cyclic) payloads cannot be sealed: building the artifact raises `RecursionError`, before any gateway verdict exists.
 
 ## 1. Pipeline Position & Role
@@ -143,14 +144,14 @@ tests/                adversarial, integrity-bypass, unit, dashboard, authority_
 
 ### Release and test status
 
-Snapshot: main `cd9cc62`, 2026-11-07. The maturity section above gives the commands and counts. Older measurements are not repeated here.
+Snapshot labels, 2026-11-07. **Current main** `d7b2749`: CI green on Python 3.11 and 3.12, with and without CNS, verified against GitHub check runs. **Branch measured here** `95e5015` plus uncommitted changes: test counts below were produced from this working tree, not from CI.
 
 | What | State |
 |---|---|
 | Version | 0.1.0 (`pyproject.toml`) |
 | Tag and GitHub Release | None yet. Tagging is the owner's decision. |
-| CI on main | Green at `cd9cc62` (tests on Python 3.11 and 3.12, with and without CNS, plus ruff 0.15.22). The working-tree changes above have not been through CI. |
-| Tests | 268 passed and 1 skipped without CNS, 459 passed with CNS installed (2026-11-07, `cd9cc62` plus uncommitted changes) |
+| CI on main | Green at `d7b2749` (current main; verified against GitHub check runs 2026-11-07). Earlier green run at `cd9cc62` is historical. Branch `95e5015` is not yet through CI. |
+| Tests | 274 passed and 1 skipped without CNS, 465 passed with CNS installed (2026-11-07, `95e5015` plus uncommitted changes, measured locally) |
 | CNS pin | The optional `cns` extra is pinned to the tag v2.3.0 in `pyproject.toml` |
 
 ### Which doors write
@@ -259,7 +260,12 @@ How the content is made digestible, without losing what the gateway accepts. Sca
 
 The connector translates and decides nothing. If the gateway itself raises, which it no longer does for ordinary errors, the connector raises too; that is never a `PASS`.
 
-Without CNS installed, the connector's functions raise `CnsNotInstalled` with the install command. The same error says so when CNS is installed but cannot be imported or lacks what the connector uses from `cns.gate`. The connector checks for the `cns.gate` names it uses (`GateChain`, `GateOutcome`, `GatePosition`, `GateResult`, `subject_digest`); it does not check a version number. Its comments say `subject_digest` arrived in CNS 1.2.0, and that figure is not verified by this repository's tests. The only CNS version the tests run against is 2.3.0 (the pin). Nothing else in the package changes.
+Without CNS installed, the connector's functions raise `CnsNotInstalled` with the install command. The same error says so when CNS is installed but cannot be imported or lacks what the connector uses from `cns.gate`. The connector checks for the `cns.gate` names it uses (`GateChain`, `GateOutcome`, `GatePosition`, `GateResult`, `subject_digest`); it does not check a version number. Nothing else in the package changes.
+
+**CNS compatibility, three separate facts:**
+- **Tested and pinned:** CNS v2.3.0 (`pyproject.toml`). The only version the tests run against.
+- **Declared minimum interface:** none declared as a version number. The connector declares the names above. A code comment says `subject_digest` arrived in CNS 1.2.0; that is **not verified** here.
+- **Verified compatibility range:** v2.3.0 only. No other CNS version was installed or tested.
 
 Tests: `tests/test_cns_independence.py`, `tests/test_cns_judged_content.py` and `tests/test_cns_mapping_double.py` need no CNS and run everywhere, CI included (the mapping tests run against a stand-in for `cns.gate`, `tests/cns_gate_double.py`). `tests/test_cns_connector.py` runs against the real CNS and skips when it is not installed; it also checks that the stand-in is no looser than the real contract. With `GOVERNANCE_GATEWAY_REQUIRE_CNS=1` a missing CNS fails the run instead of skipping it; CI's `cns` job installs the extra and sets it.
 

@@ -6,7 +6,8 @@ Status legend used throughout: **IMPLEMENTED** (code and a test in this reposito
 
 - `GovernanceGateway(authority_verifier=f)` calls `f(authority)` once per artifact that has passed the well-formedness and integrity checks. `authority` is an `Authority(actor, grant)` and nothing else. The verifier does **not** receive the artifact, its scope, its payload or its digest.
 - The verifier's answer counts only if it is literally `True`.
-  - Any other return value (`None`, `False`, `1`, `"yes"`, a list) refuses the artifact with `MISSING_AUTHORITY`.
+  - Literal `False` refuses the artifact with `MISSING_AUTHORITY`.
+  - Any other return value (`None`, `0`, `1`, `"yes"`, a list) is a malformed response. It refuses the artifact with `AUTHORITY_VERIFIER_UNAVAILABLE`: a verifier that does not answer correctly is treated as failed, not as a verdict on the grant.
   - An exception raised by the verifier refuses the artifact with `AUTHORITY_VERIFIER_UNAVAILABLE`. The exception's text is not included in the verdict, because it may contain secrets. An outage is not evidence that the grant is invalid, so it is kept separate from `MISSING_AUTHORITY`.
 - Every refusal here is fail-closed. No verifier outcome leads to acceptance.
 - The verifier is not called for an artifact with a bad digest or a malformed field.
@@ -42,7 +43,7 @@ Each decision below was taken as the recommended option. Its consequences still 
 | R8 | Replay protection | NOT IMPLEMENTED | No nonce or replay store. |
 | R9 | Verifier unavailable refuses | IMPLEMENTED | `AUTHORITY_VERIFIER_UNAVAILABLE`. |
 | R10 | Verifier exception does not prove the grant invalid | IMPLEMENTED | Separate reason code from `MISSING_AUTHORITY`. |
-| R11 | Non-boolean verifier answer refuses | IMPLEMENTED | Refused as `MISSING_AUTHORITY`. Not a separate "malformed response" code. |
+| R11 | Malformed verifier response refuses | IMPLEMENTED | Refused as `AUTHORITY_VERIFIER_UNAVAILABLE`, treated as verifier failure. Literal `False` is `MISSING_AUTHORITY`. |
 | R12 | Tampered artifact never reaches the verifier | IMPLEMENTED | Tested by `test_verifier_is_not_called_for_an_artifact_with_a_bad_digest`. |
 | R13 | Production profile refuses to run without a verifier | IMPLEMENTED | Checks only that a callable exists. |
 | R14 | Verifier request object carrying artifact context | NOT IMPLEMENTED | Changing the signature would break `authority_verifier(Authority) -> bool`. Deferred as a public-API decision. |
@@ -64,11 +65,31 @@ Current (IMPLEMENTED):
 | No verifier, development profile | Accepted if the authority is well-formed |
 | No verifier, production profile | Refused at construction (`ValueError`); if removed later, refused `MISSING_AUTHORITY` |
 | Verifier returns `True` | Accepted |
-| Verifier returns any other value | Refused, `MISSING_AUTHORITY` |
+| Verifier returns literal `False` | Refused, `MISSING_AUTHORITY` |
+| Verifier returns any other value | Refused, `AUTHORITY_VERIFIER_UNAVAILABLE` (malformed response) |
 | Verifier raises | Refused, `AUTHORITY_VERIFIER_UNAVAILABLE`; text not in verdict |
 | Artifact fails integrity | Refused before the verifier is called |
 
-## 6. Acceptance tests and traceability
+## 6. Acceptance criteria
+
+Criteria for the parts of this contract that are IMPLEMENTED. A criterion is met only when the named test runs and passes in CI.
+
+- A verifier that raises refuses with `AUTHORITY_VERIFIER_UNAVAILABLE`, and its text is not in the verdict.
+- A verifier that returns literal `False` refuses with `MISSING_AUTHORITY`.
+- A verifier that returns any other value refuses with `AUTHORITY_VERIFIER_UNAVAILABLE`.
+- An artifact with a bad digest never reaches the verifier.
+- A production gateway refuses to construct without a callable verifier.
+- A failing dashboard does not change the verdict and is logged.
+
+Criteria for the **deferred** design (not testable until built, and not claimed):
+
+- Issuer identity pinned and grant signature verified.
+- Expiry enforced by the package.
+- Revocation: under decision B, revocation takes effect no later than grant expiry. No revoked-grant test is required, because there is no revocation mechanism to test. Do not claim immediate revocation.
+- Action binding and scope binding in the verifier request.
+- Replay protection.
+
+## 6a. Acceptance tests and traceability
 
 Tests are in `tests/test_authority_verifier.py`, `tests/test_production_profile.py` and `tests/test_adversarial.py`. Each requirement with a test is listed in `AUTHORITY_REQUIREMENTS_MATRIX.md`.
 
