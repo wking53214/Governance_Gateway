@@ -19,6 +19,8 @@ Adversarially tested, domain-independent **admission boundary** for governed art
 
 **Owns.** The artifact contract and its canonical digest; the seven-member refusal vocabulary; the decision at the admission door; the translation of that decision into CNS's gate shape (`cns_connector.py`).
 
+**Four terms, used with these meanings throughout.** *Authority record*: the `actor` and `grant` strings an artifact carries; a claim, not proof. *Authority verification*: a check by a trusted verifier that the claim is genuine; optional here, and the verifier is the caller's. *Authorization*: permission to perform a specific operation; this package does not grant it. *Admission*: accepting an artifact into the next stage; this is what the gateway decides.
+
 **Does not own.** Policy permission (PERCEIVE). Whether content is true. Issuing, registering or expiring authority (the optional verifier is the caller's, not this package's). Producer authentication (SHA-256 is integrity, not authenticity). Persistence or any ledger (CCC, sentinel_os). Whether a door actually opens after a verdict: CNS's roster decides that in the spine, and the receiver's own policy permits. The gateway judges; it does not permit.
 
 **Relationship to companions.**
