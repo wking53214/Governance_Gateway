@@ -19,6 +19,8 @@ Adversarially tested, domain-independent **admission boundary** for governed art
 
 **Owns.** The artifact contract and its canonical digest; the seven-member refusal vocabulary; the decision at the admission door; the translation of that decision into CNS's gate shape (`cns_connector.py`).
 
+**Four terms, used with these meanings throughout.** *Authority record*: the `actor` and `grant` strings an artifact carries; a claim, not proof. *Authority verification*: a check by a trusted verifier that the claim is genuine; optional here, and the verifier is the caller's. *Authorization*: permission to perform a specific operation; this package does not grant it. *Admission*: accepting an artifact into the next stage; this is what the gateway decides.
+
 **Does not own.** Policy permission (PERCEIVE). Whether content is true. Issuing, registering or expiring authority (the optional verifier is the caller's, not this package's). Producer authentication (SHA-256 is integrity, not authenticity). Persistence or any ledger (CCC, sentinel_os). Whether a door actually opens after a verdict: CNS's roster decides that in the spine, and the receiver's own policy permits. The gateway judges; it does not permit.
 
 **Relationship to companions.**
@@ -56,9 +58,9 @@ Adversarially tested, domain-independent **admission boundary** for governed art
 
 It is partial because only the gate shape is used. A real spine seat is exercised by CNS's own script, not by a test here.
 
-**Maturity and limitations (measured 2026-11-06 on main `4e2564e`, Python 3.13, CNS 2.3.0 tag).**
-- `python -m pytest`: 450 passed, 0 failed, 0 skipped. `GOVERNANCE_GATEWAY_REQUIRE_CNS=1 python -m pytest`: 450 passed.
-- With the `cns` import blocked (`sys.modules['cns'] = None`): 259 passed, 1 skipped (the real-CNS connector module).
+**Maturity and limitations (measured 2026-11-07 on main `cd9cc62`, Python 3.13, CNS 2.3.0 tag).**
+- `python -m pytest` with CNS installed: 452 passed, 0 failed, 0 skipped.
+- With the `cns` import blocked (`sys.modules['cns'] = None`): 261 passed, 1 skipped (the real-CNS connector module).
 - Version `0.1.0`, untagged. Library only: no service, no authn, no refusal log. Without an `authority_verifier`, any non-empty actor and grant string passes. `GOVERNANCE_VIOLATION` is never produced.
 
 ## 1. Pipeline Position & Role
@@ -94,7 +96,7 @@ The gateway is a **non-transforming validation boundary**. It evaluates an immut
 | `provenance` | non-empty `Mapping` | Origin. Empty mapping is `MISSING_PROVENANCE`. |
 | `epistemic_status` | `EpistemicStatus` | Closed vocab: `FACT`, `INFERENCE`, `ASSUMPTION`, `RECOMMENDATION`, `DECISION`, `UNKNOWN`. |
 | `authority` | `Authority(actor, grant)` | Both strings non-empty. Presence of a grant string is **not** issuance of authorization. |
-| `scope` | `Scope` | `READ_ONLY` or `EXECUTE`. A read-scoped artifact cannot be executed by omission. |
+| `scope` | `Scope` | `READ_ONLY` or `EXECUTE`. The gateway validates and preserves the declared scope. Enforcing that scope against downstream operations belongs to the consuming orchestrator and execution boundary. |
 | `integrity` | 64-char lowercase hex SHA-256 | Independently recomputed; mismatch → `INTEGRITY_FAILURE`. |
 
 Integrity is `SHA-256(canonical_json({artifact_id, payload, provenance, epistemic_status, authority, scope}))`. Canonicalization sorts keys, uses compact separators, `ensure_ascii=False`, `allow_nan=False`. Equivalent governed data must hash identically. The digest is **recomputed**, never trusted as a stored string.
@@ -142,14 +144,14 @@ tests/                adversarial, integrity-bypass, unit, dashboard, authority_
 
 ### Release and test status
 
-Measured 2026-10-31 at main `4339185`. Commands and counts: see "Role in the STACK spine" above.
+Snapshot: main `cd9cc62`, 2026-11-07. The maturity section above gives the commands and counts. Older measurements are not repeated here.
 
 | What | State |
 |---|---|
 | Version | 0.1.0 (`pyproject.toml`) |
 | Tag and GitHub Release | None yet. Tagging is the owner's decision. |
-| CI on main | Green on 2026-11-07 at `c8b0afd` (tests on Python 3.11 and 3.12, with and without CNS, plus ruff 0.15.22) |
-| Tests | 259 passed and 1 skipped without CNS, 450 passed with CNS installed (2026-11-07) |
+| CI on main | Green at `cd9cc62` (tests on Python 3.11 and 3.12, with and without CNS, plus ruff 0.15.22) |
+| Tests | 261 passed and 1 skipped without CNS, 452 passed with CNS installed (2026-11-07, `cd9cc62`) |
 | CNS pin | The optional `cns` extra is pinned to the tag v2.3.0 in `pyproject.toml` |
 
 ### Which doors write

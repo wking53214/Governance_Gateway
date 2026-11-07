@@ -46,6 +46,6 @@ Profiles:
 - `DEVELOPMENT` (default): no verifier required. Use for local work and tests only.
 - `PRODUCTION`: refuses to construct without a callable verifier. This is a configuration guard, not proof that the verifier is trustworthy.
 
-Ordering: the verifier is called before the integrity check in the current code. An artifact with a bad digest can still reach the verifier. Changing that order is an open item for a separate code change.
+Ordering: the integrity check runs before the verifier. The checks run in this order: artifact type, identity, provenance, authority type, epistemic state, scope, integrity format, integrity recomputation and comparison, then the verifier. An artifact with a bad digest never reaches the verifier. The verifier's answer counts only if it is literally `True`; anything else, or an exception, refuses the artifact with `MISSING_AUTHORITY`. The verifier itself is supplied by the caller and is not checked by this package.
 
 Failure behavior: an ordinary error during judging returns `INVALID_ARTIFACT`. Dashboard recording happens after the judgment and is not covered by that handler.

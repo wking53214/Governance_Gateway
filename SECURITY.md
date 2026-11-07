@@ -20,6 +20,18 @@ Known limits, stated in the docs and not treated as vulnerabilities by themselve
 
 Reports about these limits are welcome. They are most useful when they show a concrete case where a limit is worse than documented.
 
+## Deployment requirements
+
+The gateway is a library. It returns a decision and cannot force anything. A production deployment that relies on it needs all of the following, provided by the deployer:
+
+- The `PRODUCTION` profile, so the gateway refuses to run without a verifier.
+- A trusted `authority_verifier`. The package does not supply one, and `PRODUCTION` only checks that a callable exists, not that it is trustworthy.
+- Downstream enforcement of every refusal. A caller that ignores a `GateResult` is outside what the gateway can prevent.
+- Producer authentication, handled by separate controls. The digest does not provide it.
+- Logging and monitoring of refusals. The package keeps no durable log.
+
+Meeting these requirements does not make the package an authorization system. It remains an admission check.
+
 ## Supported versions
 
 Only the `main` branch receives fixes. The package is at version `0.1.0`.
