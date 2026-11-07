@@ -2,6 +2,8 @@
 
 Adversarially tested, domain-independent **admission boundary** for governed artifacts. Version `0.1.0`. Stdlib only. Python ≥ 3.11.
 
+**Authority is not independently established by default.** The gateway checks that an authority record is present and well-formed. It does not check that the record was issued or is still valid unless the caller supplies an `authority_verifier`, and the default profile does not require one. Production use requires `profile=GatewayProfile.PRODUCTION` and a verifier the caller trusts. The gateway is not an authorization system. See `ARCHITECTURE.md` (trust model) and `SECURITY.md` (reporting).
+
 ## Role in the STACK spine
 
 **Purpose.** Governance_Gateway is the admission door for one kind of object, the `Artifact`: a frozen record that says what it is (`payload`), where it came from (`provenance`), how sure it is (`epistemic_status`), who claims the right to act on it (`authority`), how far it may reach (`scope`), and a SHA-256 over all of that (`integrity`). `GovernanceGateway.evaluate` answers one question: is this artifact well-formed, untampered, scoped, provenanced and carrying an authority record? The answer is `accepted` or a refusal with one `GateReason`. It never repairs, rewrites or promotes.
@@ -215,6 +217,8 @@ GovernanceGateway.evaluate
 This repo has **zero runtime imports** of sibling packages. Integration is adapter-side, in observe-perceive. The one exception is the optional CNS connector (section 8), which loads `cns.gate` only when one of its functions is called.
 
 ### Place in the evidence spine
+
+This sequence and the live decision path in section 1 are different workflows. The live path starts with this repository. The evidence spine reaches it fourth, after HERALD, TIE, and Conservation_Kernel. Read the two separately.
 
 The evidence spine is the five repositories a document passes through in order: HERALD reads it and extracts claims, TIE records the evidence, Conservation_Kernel decides whether a root may be admitted, Governance_Gateway judges the admission door, and CCC takes the document into its store. CNS holds the roster that makes the decision, the check that every seat judged the same document, and the one-use guard that lets an approved decision open only the door it judged. `chains/evidence_spine.py` in CNS runs all of it end to end. A 2026-11-07 run of that script at each repository's default branch (CNS 19c92c5, HERALD 5505d55, TIE 897f033, Conservation_Kernel 3aab1ae, Governance_Gateway 1bede83, ccc 6f80792) exited 0 with 56 scenarios all ok and 3 recorded GAPs. It is not a result of this repository's tests.
 
