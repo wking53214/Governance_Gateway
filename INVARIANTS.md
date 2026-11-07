@@ -15,6 +15,8 @@ For an accepted artifact, the gateway returns the exact artifact object and does
 
 The artifact model rejects unsupported value types and non-string mapping keys rather than silently coercing them. Nested JSON-like payload/provenance structures are frozen.
 
+Immutability here is an API guarantee, not a security boundary. Frozen objects prevent accidental or ordinary mutation through the public interface. They do not protect against code running in the same Python process, which can change them.
+
 This matters because a silent coercion at construction would violate the same conservation principle the gateway is intended to enforce.
 
 ## Required governance state
