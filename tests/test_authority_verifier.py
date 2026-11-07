@@ -73,3 +73,25 @@ def test_the_verifier_does_not_override_an_earlier_refusal():
     object.__setattr__(tampered, "payload", {"message": "tampered"})
     result = GovernanceGateway(authority_verifier=registry_verifier).evaluate(tampered)
     assert result.reason is GateReason.INTEGRITY_FAILURE
+
+
+def test_verifier_is_not_called_for_an_artifact_with_a_bad_digest():
+    calls = []
+
+    def recording_verifier(authority):
+        calls.append(authority)
+        return True
+
+    artifact = Artifact.create(
+        artifact_id="order-1",
+        payload={"k": "v"},
+        provenance={"src": "t"},
+        epistemic_status=EpistemicStatus.FACT,
+        authority=Authority("actor", "grant"),
+        scope=Scope.READ_ONLY,
+    )
+    object.__setattr__(artifact, "integrity", "0" * 64)
+    result = GovernanceGateway(authority_verifier=recording_verifier).evaluate(artifact)
+    assert result.accepted is False
+    assert result.reason is GateReason.INTEGRITY_FAILURE
+    assert calls == []

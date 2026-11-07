@@ -89,14 +89,6 @@ class GovernanceGateway:
             if self._profile is GatewayProfile.PRODUCTION and not callable(self.authority_verifier):
                 return GateResult.reject(GateReason.MISSING_AUTHORITY)
 
-            if self.authority_verifier is not None:
-                try:
-                    verified = self.authority_verifier(artifact.authority) is True
-                except Exception:
-                    verified = False
-                if not verified:
-                    return GateResult.reject(GateReason.MISSING_AUTHORITY)
-
             if not isinstance(artifact.epistemic_status, EpistemicStatus):
                 return GateResult.reject(GateReason.INVALID_EPISTEMIC_STATE)
 
@@ -117,6 +109,16 @@ class GovernanceGateway:
 
             if artifact.integrity != expected:
                 return GateResult.reject(GateReason.INTEGRITY_FAILURE)
+
+            # The external verifier runs only after the artifact is well-formed
+            # and its integrity matches, so invalid artifacts never reach it.
+            if self.authority_verifier is not None:
+                try:
+                    verified = self.authority_verifier(artifact.authority) is True
+                except Exception:
+                    verified = False
+                if not verified:
+                    return GateResult.reject(GateReason.MISSING_AUTHORITY)
 
             return GateResult.accept(artifact)
         except Exception:
