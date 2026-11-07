@@ -94,7 +94,7 @@ The gateway is a **non-transforming validation boundary**. It evaluates an immut
 | `provenance` | non-empty `Mapping` | Origin. Empty mapping is `MISSING_PROVENANCE`. |
 | `epistemic_status` | `EpistemicStatus` | Closed vocab: `FACT`, `INFERENCE`, `ASSUMPTION`, `RECOMMENDATION`, `DECISION`, `UNKNOWN`. |
 | `authority` | `Authority(actor, grant)` | Both strings non-empty. Presence of a grant string is **not** issuance of authorization. |
-| `scope` | `Scope` | `READ_ONLY` or `EXECUTE`. A read-scoped artifact cannot be executed by omission. |
+| `scope` | `Scope` | `READ_ONLY` or `EXECUTE`. The gateway validates and preserves the declared scope. Enforcing that scope against downstream operations belongs to the consuming orchestrator and execution boundary. |
 | `integrity` | 64-char lowercase hex SHA-256 | Independently recomputed; mismatch → `INTEGRITY_FAILURE`. |
 
 Integrity is `SHA-256(canonical_json({artifact_id, payload, provenance, epistemic_status, authority, scope}))`. Canonicalization sorts keys, uses compact separators, `ensure_ascii=False`, `allow_nan=False`. Equivalent governed data must hash identically. The digest is **recomputed**, never trusted as a stored string.
