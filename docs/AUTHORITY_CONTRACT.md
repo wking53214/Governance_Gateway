@@ -1,6 +1,6 @@
 # Authority verification contract: design (draft)
 
-Status: **draft for review. Nothing here is implemented.** The gateway today calls an optional caller-supplied `authority_verifier(Authority) -> bool` and trusts its answer. This document defines what a real verification contract must establish, so that the production story can move past "configuration guard."
+Status: **decisions recorded (section 3); nothing here is implemented.** The gateway today calls an optional caller-supplied `authority_verifier(Authority) -> bool` and trusts its answer. This document defines what a real verification contract must establish, so that the production story can move past "configuration guard."
 
 ## 1. What the contract must establish
 
@@ -17,17 +17,19 @@ Status: **draft for review. Nothing here is implemented.** The gateway today cal
 
 The verifier runs after the artifact's well-formedness and integrity checks (see `_judge()`, moved in the change that added this document). An artifact with a bad digest never reaches it.
 
-## 3. Design choices needing a decision
+## 3. Design choices
 
-**A. Who holds the trust anchor?**
+Decided 2026-11-07 by the maintainer, taking the recommended option in each case. The consequences listed under each option still apply.
+
+**A. Who holds the trust anchor?** Decision: option 1 (operator pins issuer keys).
 1. The operator pins issuer public keys in a file, the same pattern as the twin receiver's customer keys. **(Recommended)** Consequence: simple, auditable, and no network dependency; key rotation is a file edit.
 2. A remote authority service is the source of truth. Consequence: revocation is immediate, but every decision depends on that service's availability and on its TLS trust.
 
-**B. How are revocations delivered?**
+**B. How are revocations delivered?** Decision: option 1 (short-lived grants, no revocation list).
 1. Short-lived grants (minutes to hours) with no revocation list. **(Recommended)** Consequence: revocation takes effect at expiry, so the window is bounded by grant lifetime, and no revocation feed is needed.
 2. A signed revocation list the verifier refreshes. Consequence: faster revocation, but another feed to keep fresh and a stale-list failure mode to design for.
 
-**C. What happens when verification cannot be completed?**
+**C. What happens when verification cannot be completed?** Decision: option 1 (refuse with a distinct reason code).
 1. Refuse, with a distinct reason code for "verifier unavailable." **(Recommended)** Consequence: fail closed. Operators see outages as refusals, not as silent accepts.
 2. Retry, then refuse. Consequence: fewer false refusals during brief blips, but a longer decision time.
 
