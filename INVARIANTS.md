@@ -61,4 +61,6 @@ The gateway additionally requires integrity to be exactly a 64-character lowerca
 
 ## Failure rule
 
-Unexpected, missing, malformed, or contradictory governance state must fail closed: `REJECT`, never silent `ACCEPT`.
+Missing, malformed, or contradictory governance state must fail closed: `REJECT`, never silent `ACCEPT`. The gateway's own checks return `REJECT` for every case they anticipate.
+
+Known gap: an error the gateway does not anticipate, such as one raised while inspecting a caller-supplied object, is not converted to `REJECT`. It propagates to the caller as an exception. Nothing is accepted in that case, but the caller must handle the exception. Closing this gap is planned as a separate code change.
