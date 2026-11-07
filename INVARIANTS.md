@@ -44,6 +44,8 @@ Passing the gateway does not make content authoritative.
 
 An object possessing a capability or being presented to the gateway does not thereby gain authority. V0.1 has no state-transition API and therefore rejects missing authority rather than manufacturing it.
 
+Scope of this guarantee: the gateway checks that an `Authority` is present and well-formed, not that it was issued. In the default development profile, with no `authority_verifier` supplied, any well-formed `Authority` passes, including one attached to an edited artifact that was re-sealed. A caller can supply an `authority_verifier` to check that an authority is genuinely held. The production profile refuses to run without one.
+
 ## Scope conservation
 
 The gateway does not broaden scope. V0.1 recognizes explicit `READ_ONLY` and `EXECUTE` scopes but performs no transitions between them.
