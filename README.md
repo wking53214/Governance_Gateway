@@ -146,7 +146,7 @@ Measured 2026-10-31 at main `4339185`. Commands and counts: see "Role in the STA
 |---|---|
 | Version | 0.1.0 (`pyproject.toml`) |
 | Tag and GitHub Release | None yet. Tagging is the owner's decision. |
-| CI on main | Green on 2026-10-30 (tests on Python 3.11 and 3.12, with and without CNS, plus ruff 0.15.22) |
+| CI on main | Green on 2026-11-07 at `c8b0afd` (tests on Python 3.11 and 3.12, with and without CNS, plus ruff 0.15.22) |
 | Tests | 258 passed and 1 skipped without CNS, 449 passed with CNS installed (2026-11-06) |
 | CNS pin | The optional `cns` extra is pinned to the tag v2.3.0 in `pyproject.toml` |
 
