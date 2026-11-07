@@ -136,7 +136,7 @@ tests/                adversarial, integrity-bypass, unit, dashboard, authority_
 | Scope enforcement | Gateway validates the enum. Downstream execution-scope binding is the orchestrator's job (`observe-perceive` scope-binding tests). This package cannot stop a caller who ignores `GateResult`. |
 | Epistemic vocab | Gateway vocab (`FACT`/`INFERENCE`/…) is **not identical** to Conservation Kernel's (`FACT`/`OBSERVATION`/`ESTIMATED`/`CONFLICTED`/…). Adapters must map. Drift is a real seam. |
 | `GOVERNANCE_VIOLATION` | Dead enum member. |
-| Python 3.11+ | `Authority \| None` union syntax. α/ζ/β/δ advertise 3.9. Mixed floor. |
+| Python 3.11+ | `Authority \| None` union syntax. α/ζ/β/δ declare Python 3.10 or newer in their project files (checked 2026-11-06). Mixed floor. |
 
 ### Release and test status
 
