@@ -97,7 +97,7 @@ The gateway is a **non-transforming validation boundary**. It evaluates an immut
 
 Integrity is `SHA-256(canonical_json({artifact_id, payload, provenance, epistemic_status, authority, scope}))`. Canonicalization sorts keys, uses compact separators, `ensure_ascii=False`, `allow_nan=False`. Equivalent governed data must hash identically. The digest is **recomputed**, never trusted as a stored string.
 
-`Artifact.create(...)` freezes, hashes, and returns a frozen dataclass. `GovernanceGateway.evaluate(artifact)` re-validates types and recomputes the digest. Unexpected exceptions fail closed as `INVALID_ARTIFACT`.
+`Artifact.create(...)` freezes, hashes, and returns a frozen dataclass. `GovernanceGateway.evaluate(artifact)` re-validates types and recomputes the digest. Four specific error types raised during evaluation are returned as `INVALID_ARTIFACT`. Other unexpected exceptions propagate to the caller instead; nothing is accepted in that case. See the failure rule in `INVARIANTS.md` for the known gap.
 
 ### Rejection vocabulary
 
@@ -158,7 +158,7 @@ Runnable: `pip install -e ".[test]" && pytest`. Tests cover adversarial integrit
 
 ## 5. Core Invariants & Guarantees
 
-- **Fail-closed:** malformed, missing, or contradictory governance state is `REJECT`, never silent `ACCEPT`.
+- **Fail-closed:** malformed, missing, or contradictory governance state is `REJECT`, never silent `ACCEPT`. The known exception is an unanticipated error, which propagates to the caller rather than returning `REJECT` (see `INVARIANTS.md`).
 - **Recomputation over trust:** integrity is always recalculated from canonical fields.
 - **Non-transformation:** accepted artifact is the same object that was presented.
 - **Immutability after freeze:** payload/provenance cannot be mutated without breaking the digest (and `frozen=True` dataclasses).
