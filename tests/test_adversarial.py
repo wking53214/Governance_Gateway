@@ -155,3 +155,16 @@ def test_nan_payload_is_rejected_instead_of_getting_ambiguous_integrity():
             authority=Authority(actor="tester", grant="inspect"),
             scope=Scope.READ_ONLY,
         )
+
+
+def test_a_failing_dashboard_does_not_change_the_verdict_or_raise():
+    class BrokenDashboard:
+        def record(self, result):
+            raise RuntimeError("dashboard down")
+
+    gateway = GovernanceGateway(dashboard=BrokenDashboard())
+    accepted = gateway.evaluate(valid())
+    assert accepted.accepted is True
+    refused = gateway.evaluate("not an artifact")
+    assert refused.accepted is False
+    assert refused.reason is GateReason.INVALID_ARTIFACT
