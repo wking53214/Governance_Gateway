@@ -35,18 +35,18 @@ Adversarially tested, domain-independent **admission boundary** for governed art
       Each of the five repositories above supplies one gate; CNS never replaces any of them.
 ```
 
-- [CNS](https://github.com/wking53214/CNS): shared gate contract. `chains/evidence_spine.py` runs HERALD, TIE, Conservation_Kernel, this gateway and CCC on one document and imports `governance_gateway.cns_connector.CnsGate` (`chains/evidence_spine.py:166`). That script, not this repository, wires the spine.
+- [CNS](https://github.com/wking53214/CNS): shared gate contract. `chains/evidence_spine.py` runs HERALD, TIE, Conservation_Kernel, this gateway and CCC on one document and imports `governance_gateway.cns_connector.CnsGate`. That script, not this repository, wires the spine.
 - [Conservation_Kernel](https://github.com/wking53214/Conservation_Kernel): judges a root artifact built from evidence. Its epistemic vocabulary differs from this gateway's; a caller maps between them.
 - [CCC](https://github.com/wking53214/CCC): the store behind the door. It has its own write-permission gate; this gateway has no write to gate.
 - [HERALD](https://github.com/wking53214/HERALD) and [TIE](https://github.com/wking53214/TIE): upstream. This package imports neither and does not read their output.
-- [observe-perceive](https://github.com/wking53214/observe-perceive): the other consumer. `gateway_admission_adapter.py` imports `GovernanceGateway` and the models (lines 58-64) and calls `evaluate` (line 111). It does not pass an `authority_verifier`.
+- [observe-perceive](https://github.com/wking53214/observe-perceive): the other consumer. `gateway_admission_adapter.py` imports `GovernanceGateway` and the models, and calls `evaluate`. It does not pass an `authority_verifier`.
 - CCCb and Link: no import, reference or code path in this repository. No relationship is claimed.
 
 **CNS interaction: PARTIAL.** Implemented as an optional adapter, not part of the core and not on the default path.
 
 | Evidence | Status |
 |---|---|
-| `src/governance_gateway/cns_connector.py:190-204` imports `cns.gate` on demand (`importlib.import_module`); `:525` `CnsGate`, `:557` `cns_chain`, `:568` `evaluate_to_cns`, `:482` `to_cns_result` | implemented, optional |
+| `src/governance_gateway/cns_connector.py` imports `cns.gate` on demand (`importlib.import_module`); defines `CnsGate`, `cns_chain`, `evaluate_to_cns` and `to_cns_result` | implemented, optional |
 | `src/governance_gateway/__init__.py` imports no CNS; `tests/test_cns_independence.py` checks it | implemented |
 | `cns_interop` (UAI-1 signed messages), `cns_composition` (roster, super gate, decision guard) | absent: no import in `src/` or `tests/` (grep, 2026-10-31) |
 | An omega end, `RETRY` outcome, or a complete CNS chain | absent by design (`cns_chain(...).complete()` is `False`) |
