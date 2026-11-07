@@ -15,6 +15,8 @@ For an accepted artifact, the gateway returns the exact artifact object and does
 
 The artifact model rejects unsupported value types and non-string mapping keys rather than silently coercing them. Nested JSON-like payload/provenance structures are frozen.
 
+Building an `Artifact` can also raise, before any gateway verdict exists, for values it cannot seal: a container that contains itself (`RecursionError`), a payload nested beyond the Python recursion limit (`RecursionError`, measured at about 5,000 levels), a mapping subclass whose inspection raises, and NaN or infinity. No artifact is produced in those cases, so nothing can be accepted.
+
 Immutability here is an API guarantee, not a security boundary. Frozen objects prevent accidental or ordinary mutation through the public interface. They do not protect against code running in the same Python process, which can change them.
 
 This matters because a silent coercion at construction would violate the same conservation principle the gateway is intended to enforce.
@@ -59,10 +61,27 @@ A SHA-256 digest is calculated deterministically from the canonical representati
 
 It detects modification of those fields after the digest was established, assuming the attacker cannot replace both the governed content and its expected digest.
 
+Exact canonical form: the material is a JSON object with keys `artifact_id`, `payload`, `provenance`, `epistemic_status` (its string value), `authority` (`{"actor", "grant"}`), and `scope` (its string value). Keys are sorted, separators are compact (`,` and `:`), non-ASCII text is kept as-is (`ensure_ascii=False`), and NaN or infinity is refused (`allow_nan=False`). Tuples are encoded as lists. Mapping keys must be strings, enforced at construction.
+
 It does **not** provide authentication, key management, non-repudiation, authorization, or protection against a fully compromised runtime.
 
 The gateway additionally requires integrity to be exactly a 64-character lowercase hexadecimal SHA-256 representation.
 
 ## Failure rule
 
-Missing, malformed, or contradictory governance state must fail closed: `REJECT`, never silent `ACCEPT`. Any ordinary error raised while the gateway judges an artifact, including one raised while inspecting a caller-supplied object, is also returned as `REJECT`. The gateway never raises an error into the caller for an ordinary input and never returns `ACCEPT` for one.
+Missing, malformed, or contradictory governance state must fail closed: `REJECT`, never silent `ACCEPT`. Any ordinary error raised while the gateway judges an artifact, including one raised while inspecting a caller-supplied object, is also returned as `REJECT`. The gateway does not raise into the caller for an object it is asked to judge, and never returns `ACCEPT` for one. (Construction of an `Artifact` is separate; see Construction boundary.)
+
+## Verifier failure semantics
+
+- An `authority_verifier` that returns anything other than literal `True` refuses with `MISSING_AUTHORITY`.
+- An `authority_verifier` that raises refuses with `AUTHORITY_VERIFIER_UNAVAILABLE`. Its exception text is not in the verdict.
+- The verifier is called only after the artifact passes the integrity check.
+- Neither outcome ever produces `ACCEPT`.
+
+## Dashboard isolation
+
+The optional dashboard is called after the verdict is decided. Its exceptions are logged and do not change the verdict or reach the caller. A dashboard that fails cannot turn a rejection into an acceptance or an acceptance into a rejection.
+
+## What the gateway cannot enforce
+
+A `REJECT` is a return value. The gateway cannot stop a caller from ignoring it and proceeding with the artifact. Enforcement of refusals and of declared scope belongs to the consuming orchestrator.

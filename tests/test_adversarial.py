@@ -168,3 +168,67 @@ def test_a_failing_dashboard_does_not_change_the_verdict_or_raise():
     refused = gateway.evaluate("not an artifact")
     assert refused.accepted is False
     assert refused.reason is GateReason.INVALID_ARTIFACT
+
+
+def test_a_payload_that_contains_itself_cannot_be_sealed():
+    cycle = []
+    cycle.append(cycle)
+    with pytest.raises(RecursionError):
+        Artifact.create(
+            artifact_id="cycle-1",
+            payload=cycle,
+            provenance={"source": "test"},
+            epistemic_status=EpistemicStatus.UNKNOWN,
+            authority=Authority(actor="tester", grant="inspect"),
+            scope=Scope.READ_ONLY,
+        )
+
+
+def test_a_payload_nested_past_the_recursion_limit_cannot_be_sealed():
+    deep = {}
+    cursor = deep
+    for _ in range(5000):
+        cursor["n"] = {}
+        cursor = cursor["n"]
+    with pytest.raises(RecursionError):
+        Artifact.create(
+            artifact_id="deep-1",
+            payload=deep,
+            provenance={"source": "test"},
+            epistemic_status=EpistemicStatus.UNKNOWN,
+            authority=Authority(actor="tester", grant="inspect"),
+            scope=Scope.READ_ONLY,
+        )
+
+
+def test_an_oversized_payload_is_judged_and_a_change_to_one_element_is_refused():
+    big = {"items": list(range(200_000))}
+    artifact = valid()
+    sealed = Artifact.create(
+        artifact_id="big-1",
+        payload=big,
+        provenance={"source": "test"},
+        epistemic_status=EpistemicStatus.UNKNOWN,
+        authority=Authority(actor="tester", grant="inspect"),
+        scope=Scope.READ_ONLY,
+    )
+    assert GovernanceGateway().evaluate(sealed).accepted is True
+    object.__setattr__(sealed, "payload", {"items": list(range(1, 200_001))})
+    assert GovernanceGateway().evaluate(sealed).reason is GateReason.INTEGRITY_FAILURE
+    assert artifact.artifact_id == "adv-1"
+
+
+def test_a_mapping_subclass_whose_items_raise_cannot_be_sealed():
+    class Hostile(dict):
+        def items(self):
+            raise RuntimeError("hostile items")
+
+    with pytest.raises(RuntimeError):
+        Artifact.create(
+            artifact_id="hostile-1",
+            payload=Hostile(a=1),
+            provenance={"source": "test"},
+            epistemic_status=EpistemicStatus.UNKNOWN,
+            authority=Authority(actor="tester", grant="inspect"),
+            scope=Scope.READ_ONLY,
+        )

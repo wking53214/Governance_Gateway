@@ -17,6 +17,10 @@ Known limits, stated in the docs and not treated as vulnerabilities by themselve
 - The integrity digest is unkeyed SHA-256. It detects accidental or unauthorized edits that do not also replace the digest. It does not authenticate the producer.
 - In the default `DEVELOPMENT` profile, no authority verifier is required, so any well-formed authority record passes.
 - Frozen objects are an API guarantee. They do not protect against code running in the same Python process.
+- Expiry and revocation are not implemented in this package. There is no expiry field on `Authority` and no revocation list or registry. Any revocation delay is bounded by the lifetime of the grant as the caller's verifier enforces it.
+- Issuer identity, key management and signature verification are not implemented. The package has no keys. `Authority.grant` is an opaque string checked only for presence.
+- Replay protection and action binding are not implemented.
+- Declared scope is validated and preserved, not enforced.
 
 Reports about these limits are welcome. They are most useful when they show a concrete case where a limit is worse than documented.
 

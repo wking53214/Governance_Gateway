@@ -206,8 +206,9 @@ def test_the_corpus_reflects_what_the_gateway_really_decides():
 
 def test_the_corpus_reaches_every_reason_the_gateway_can_give():
     reached = {reason for _, _, reason in CORPUS if reason is not None}
-    # GOVERNANCE_VIOLATION is defined and never produced by evaluate(): README section 2.
-    assert reached == set(GateReason) - {GateReason.GOVERNANCE_VIOLATION}
+    # AUTHORITY_VERIFIER_UNAVAILABLE needs a verifier that fails, which this corpus
+    # (no verifier) cannot produce; it is covered in tests/test_authority_verifier.py.
+    assert reached == set(GateReason) - {GateReason.AUTHORITY_VERIFIER_UNAVAILABLE}
 
 
 # position -------------------------------------------------------------------

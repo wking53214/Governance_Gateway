@@ -39,13 +39,13 @@ What the gateway establishes:
 
 What it does not establish:
 - **Authenticity.** The digest is unkeyed SHA-256, so anyone can compute a valid digest for any content. An edited artifact re-sealed by anyone passes in the default profile.
-- **Authority.** With no `authority_verifier`, any well-formed authority record passes. With one, the gateway trusts the verifier's answer, and the verifier is the caller's responsibility.
+- **Authority.** With no `authority_verifier`, any well-formed authority record passes. With one, the gateway trusts the verifier's answer, and the verifier is the caller's responsibility. The verifier receives only the `Authority`, not the artifact. Expiry, revocation and issuer checks are not in this package.
 - **Identity, issuance, expiry, and revocation.** The gateway has no grant registry, key management, or signature checks.
 
 Profiles:
 - `DEVELOPMENT` (default): no verifier required. Use for local work and tests only.
 - `PRODUCTION`: refuses to construct without a callable verifier. This is a configuration guard, not proof that the verifier is trustworthy.
 
-Ordering: the integrity check runs before the verifier. The checks run in this order: artifact type, identity, provenance, authority type, epistemic state, scope, integrity format, integrity recomputation and comparison, then the verifier. An artifact with a bad digest never reaches the verifier. The verifier's answer counts only if it is literally `True`; anything else, or an exception, refuses the artifact with `MISSING_AUTHORITY`. The verifier itself is supplied by the caller and is not checked by this package.
+Ordering: the integrity check runs before the verifier. The checks run in this order: artifact type, identity, provenance, authority type, epistemic state, scope, integrity format, integrity recomputation and comparison, then the verifier. An artifact with a bad digest never reaches the verifier. The verifier's answer counts only if it is literally `True`; anything else refuses the artifact with `MISSING_AUTHORITY`, and an exception refuses it with `AUTHORITY_VERIFIER_UNAVAILABLE`. The verifier itself is supplied by the caller and is not checked by this package.
 
-Failure behavior: an ordinary error during judging returns `INVALID_ARTIFACT`. Dashboard recording happens after the judgment and is not covered by that handler.
+Failure behavior: an ordinary error during judging returns `INVALID_ARTIFACT`. An exception from the verifier returns `AUTHORITY_VERIFIER_UNAVAILABLE`, and its text is not included in the verdict. A verifier answer that is not literally `True` returns `MISSING_AUTHORITY`. Dashboard recording happens after the judgment; an exception from it is logged and never changes the verdict or reaches the caller.
