@@ -97,7 +97,7 @@ The gateway is a **non-transforming validation boundary**. It evaluates an immut
 
 Integrity is `SHA-256(canonical_json({artifact_id, payload, provenance, epistemic_status, authority, scope}))`. Canonicalization sorts keys, uses compact separators, `ensure_ascii=False`, `allow_nan=False`. Equivalent governed data must hash identically. The digest is **recomputed**, never trusted as a stored string.
 
-`Artifact.create(...)` freezes, hashes, and returns a frozen dataclass. `GovernanceGateway.evaluate(artifact)` re-validates types and recomputes the digest. Four specific error types raised during evaluation are returned as `INVALID_ARTIFACT`. Other unexpected exceptions propagate to the caller instead; nothing is accepted in that case. See the failure rule in `INVARIANTS.md` for the known gap.
+`Artifact.create(...)` freezes, hashes, and returns a frozen dataclass. `GovernanceGateway.evaluate(artifact)` re-validates types and recomputes the digest. Any ordinary error raised during evaluation is returned as `INVALID_ARTIFACT`, never as an accept.
 
 ### Rejection vocabulary
 
@@ -158,7 +158,7 @@ Runnable: `pip install -e ".[test]" && pytest`. Tests cover adversarial integrit
 
 ## 5. Core Invariants & Guarantees
 
-- **Fail-closed:** malformed, missing, or contradictory governance state is `REJECT`, never silent `ACCEPT`. The known exception is an unanticipated error, which propagates to the caller rather than returning `REJECT` (see `INVARIANTS.md`).
+- **Fail-closed:** malformed, missing, or contradictory governance state is `REJECT`, never silent `ACCEPT`. This includes ordinary errors raised while judging an artifact.
 - **Recomputation over trust:** integrity is always recalculated from canonical fields.
 - **Non-transformation:** accepted artifact is the same object that was presented.
 - **Immutability after freeze:** payload/provenance cannot be mutated without breaking the digest (and `frozen=True` dataclasses).
@@ -244,9 +244,9 @@ resolve([verdict])                    # PASS or TERMINAL_BREACH, fail-closed
 | a native verdict that contradicts itself (accepted with a reason, accepted for another artifact or for something that is not an `Artifact`, `accepted` not a bool) | `TERMINAL_BREACH`, `reason` is `INCONSISTENT_VERDICT`. A refusal with no reason is still a refusal (`NO_REASON_GIVEN`). |
 | judged content | `subject` is the `artifact_id` (or `"artifact"`), and `subject_digest` covers the six governed fields **and the stored `integrity`**. For every artifact the gateway accepts, the digest changes if the content changes anywhere, at any depth or size (`-0.0` for `0.0` included), so a `PASS` cannot be moved onto another artifact, a forged copy, or content that drifted after the verdict. |
 
-How the content is made digestible, without losing what the gateway accepts. Scalars are read as the plain built-in values they hold, never through a subclass's own methods. A mapping key that is not plain text (an int, an enum, a string CNS cannot encode) is described, not stringified, and insertion order never reaches the digest. Containers nested more than 32 levels deep, or holding more than 10,000 values in one field, are replaced by a SHA-256 of the whole subtree, computed without recursion and visiting each shared node once, so drift below the bound is still caught by `binds`. What cannot be described faithfully gets a tagged stand-in and never an exception: a non-artifact (its type), NaN, an over-long integer, a lone surrogate, an unsupported type, a missing attribute, a circular structure (the whole field), and a value whose inspection itself raises. The gateway refuses each of these but the last, so none of them is content a `PASS` rests on. The digest is tamper-evidence, not authentication (section 3).
+How the content is made digestible, without losing what the gateway accepts. Scalars are read as the plain built-in values they hold, never through a subclass's own methods. A mapping key that is not plain text (an int, an enum, a string CNS cannot encode) is described, not stringified, and insertion order never reaches the digest. Containers nested more than 32 levels deep, or holding more than 10,000 values in one field, are replaced by a SHA-256 of the whole subtree, computed without recursion and visiting each shared node once, so drift below the bound is still caught by `binds`. What cannot be described faithfully gets a tagged stand-in and never an exception: a non-artifact (its type), NaN, an over-long integer, a lone surrogate, an unsupported type, a missing attribute, a circular structure (the whole field), and a value whose inspection itself raises. The gateway refuses each of these, so none of them is content a `PASS` rests on. The digest is tamper-evidence, not authentication (section 3).
 
-The connector translates and decides nothing. If the gateway itself raises (for example `RecursionError` on a circular payload that is otherwise valid), the connector raises too; that is never a `PASS`.
+The connector translates and decides nothing. If the gateway itself raises, which it no longer does for ordinary errors, the connector raises too; that is never a `PASS`.
 
 Without CNS installed, the connector's functions raise `CnsNotInstalled` with the install command. The same error says so when CNS is installed but cannot be imported or lacks what the connector uses from `cns.gate`. The connector needs CNS v1.4.0 or newer. Nothing else in the package changes.
 

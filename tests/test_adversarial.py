@@ -21,6 +21,18 @@ def valid():
     )
 
 
+def test_an_unexpected_error_while_judging_is_a_refusal_not_a_crash():
+    class Boom(dict):
+        def __bool__(self):
+            raise RuntimeError("unexpected inspection failure")
+
+    artifact = valid()
+    object.__setattr__(artifact, "provenance", Boom({"source": "test"}))
+    result = GovernanceGateway().evaluate(artifact)
+    assert result.accepted is False
+    assert result.reason is GateReason.INVALID_ARTIFACT
+
+
 @pytest.mark.parametrize(
     "candidate",
     [None, 1, "", object(), {}, []],

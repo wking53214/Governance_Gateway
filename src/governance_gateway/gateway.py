@@ -119,5 +119,6 @@ class GovernanceGateway:
                 return GateResult.reject(GateReason.INTEGRITY_FAILURE)
 
             return GateResult.accept(artifact)
-        except (TypeError, ValueError, AttributeError, OverflowError):
+        except Exception:
+            # Any ordinary error while judging is a refusal, never a crash or an accept.
             return GateResult.reject(GateReason.INVALID_ARTIFACT)
