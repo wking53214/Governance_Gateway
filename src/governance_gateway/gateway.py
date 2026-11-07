@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from enum import Enum
+import logging
 from typing import Any, Callable
 import re
 
@@ -67,7 +68,12 @@ class GovernanceGateway:
         """Decide accept or reject, then record the outcome if a dashboard is attached."""
         result = self._judge(artifact)
         if self.dashboard is not None:
-            self.dashboard.record(result)
+            # Counting is observability only. A failing dashboard is logged and
+            # must never change the verdict or raise into the caller.
+            try:
+                self.dashboard.record(result)
+            except Exception:
+                logging.getLogger(__name__).exception("dashboard failed to record a decision")
         return result
 
     def _judge(self, artifact: Any) -> GateResult:
