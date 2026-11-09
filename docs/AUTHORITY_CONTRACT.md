@@ -29,6 +29,10 @@ Each decision below was taken as the recommended option. Its consequences still 
 - Consequence: fail closed; outages appear as refusals with `AUTHORITY_VERIFIER_UNAVAILABLE`.
 - Status: IMPLEMENTED (section 1).
 
+**D. Does the verifier receive more than the `Authority`? (recorded 2026-11-08, maintainer choice A)** Keep the `Authority`-only interface, `authority_verifier(Authority) -> bool`.
+- Consequence: no public API change. The verifier cannot see the artifact, its scope, or the requested action, so it cannot make decisions that depend on them. A verifier that needs that context must be built outside this package.
+- Status: DECIDED. Requirement R14 (verifier request object) is deferred on this basis, not forgotten.
+
 ## 3. Requirements and status
 
 | # | Requirement | Status | Notes |
@@ -46,7 +50,7 @@ Each decision below was taken as the recommended option. Its consequences still 
 | R11 | Malformed verifier response refuses | IMPLEMENTED | Refused as `AUTHORITY_VERIFIER_UNAVAILABLE`, treated as verifier failure. Literal `False` is `MISSING_AUTHORITY`. |
 | R12 | Tampered artifact never reaches the verifier | IMPLEMENTED | Tested by `test_verifier_is_not_called_for_an_artifact_with_a_bad_digest`. |
 | R13 | Production profile refuses to run without a verifier | IMPLEMENTED | Checks only that a callable exists. |
-| R14 | Verifier request object carrying artifact context | NOT IMPLEMENTED | Changing the signature would break `authority_verifier(Authority) -> bool`. Deferred as a public-API decision. |
+| R14 | Verifier request object carrying artifact context | NOT IMPLEMENTED | Changing the signature would break `authority_verifier(Authority) -> bool`. Deferred as a public-API decision (section 2, D: keep the `Authority`-only interface). |
 
 ## 4. Verifier interface
 
