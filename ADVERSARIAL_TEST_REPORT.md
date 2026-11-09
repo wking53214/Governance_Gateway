@@ -1,6 +1,6 @@
 # Adversarial test report
 
-Results are from the local run this pass: 465 passed with CNS present; 274 passed and 1 skipped with CNS absent. "PASS" means the named test ran and passed.
+Provenance: local run only, not GitHub CI. This documentation pass changed no code. Local results: 465 passed with CNS present; 274 passed and 1 skipped with CNS absent. Code state is as recorded in EXECUTION_REPORT.md. "PASS" means the named test ran and passed.
 
 | Test case | Threat or failure mode | Expected behaviour | Actual result | PASS/FAIL | Limitation |
 |---|---|---|---|---|---|

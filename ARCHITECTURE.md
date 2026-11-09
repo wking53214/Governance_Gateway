@@ -31,6 +31,14 @@ Future governance capabilities may be added around this boundary, but V0.1 delib
 
 The one thing that sits beside the boundary, not in it, is the optional `cns_connector` (see the README). It is the only module that knows another repository exists: it knows the shape of CNS's gate contract (`cns.gate`). The gateway never imports it, it loads CNS only when one of its functions is called, and it changes no verdict: it only re-expresses the gateway's `GateResult` as a CNS gate result at the admission (`ALPHA`) end.
 
+## Position in STACK
+
+This repository is one of five gates on the evidence SPINE, in this order: HERALD, TIE, Conservation_Kernel, **Governance_Gateway**, CCC. Governance_Gateway is the fourth. It judges whether an artifact may be admitted; it does not extract, record, evaluate the evidence root, or write to any store.
+
+CNS is the coordinating contract. It holds the gate shapes and combines the five verdicts into one decision, binding each to its subject. It does not replace any of the five repositories. The optional `cns_connector` is how this gateway's verdict takes its place in that contract, at the admission (`ALPHA`) end.
+
+This is separate from the live decision path, where Governance_Gateway is the first stage (`ADMISSION`) of `observe-perceive`. The two sequences are different workflows and should not be read as one pipeline.
+
 ## Trust model
 
 What the gateway establishes:

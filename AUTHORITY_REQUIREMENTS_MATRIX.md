@@ -1,6 +1,6 @@
 # Authority requirements matrix
 
-Source of requirements: docs/AUTHORITY_CONTRACT.md. "Result" is from the local test run this pass: 465 passed (CNS present), 274 passed and 1 skipped (CNS absent). "Implemented?" uses the labels IMPLEMENTED, PARTIAL, NOT IMPLEMENTED, DECIDED.
+Source of requirements: docs/AUTHORITY_CONTRACT.md. "Result" is from a local test run, not GitHub CI: 465 passed (CNS present), 274 passed and 1 skipped (CNS absent). "Implemented?" uses the labels IMPLEMENTED, PARTIAL, NOT IMPLEMENTED, DECIDED.
 
 | Requirement | Implemented? | Source | Test | Result | Deferred dependency |
 |---|---|---|---|---|---|
