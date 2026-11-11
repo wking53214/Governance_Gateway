@@ -1,6 +1,6 @@
 # Governance_Gateway
 
-An adversarially tested, domain-independent **admission boundary** for governed artifacts. Version `0.1.0`. Stdlib only. Python ≥ 3.11. Apache-2.0.
+An adversarially tested, domain-independent **admission boundary** for governed artifacts. Version `0.1.0`. Stdlib only. Python ≥ 3.11. Apache-2.0, Copyright 2026 William N. King.
 
 It answers one question: is this artifact well-formed, untampered, and carrying the fields it claims? It never repairs, rewrites or promotes an artifact.
 
@@ -15,7 +15,9 @@ It answers one question: is this artifact well-formed, untampered, and carrying 
 
 See `ARCHITECTURE.md` (trust model), `SECURITY.md` (threat model and reporting), and `INVARIANTS.md` (what is guaranteed).
 
-## Where it sits in STACK
+## Where it sits in ≡TACK
+
+≡TACK is the whole library of repositories. STACK-kernel is one separate repository and is not the same thing. Governance_Gateway is a shared admission check used in two different workflows, not a stage owned by one chain.
 
 Three terms are used with these meanings throughout:
 
@@ -39,7 +41,7 @@ CNS coordinates the five gate judgments: it binds each to the subject and coordi
 
 `chains/evidence_spine.py` in the CNS repository runs the spine end to end. That script, not this repository, wires it.
 
-### The STACK live decision path
+### The ≡TACK live decision path
 
 ```text
 ADMISSION (this repository)
@@ -56,6 +58,12 @@ ADMISSION (this repository)
 
 Question this repository answers: *is this artifact well-formed, untampered, scoped, provenanced, and carrying an authority record?*
 Question it does **not** answer: *is this request permitted under policy?* That is PERCEIVE.
+
+### Where this fits
+
+- **Family:** the evidence SPINE, gate 4 of 5. It receives a judged root artifact from Conservation_Kernel (handed over by CNS's spine script, not by imports) and hands accept or refuse onward toward CCC.
+- **Second use:** first stage of observe-perceive's live decision path.
+- **Shared infrastructure:** it is not owned by either chain. Neither chain imports the other's code through this repository.
 
 ### Companion repositories
 
@@ -117,7 +125,7 @@ tests/                adversarial, integrity-bypass, unit, dashboard, authority 
 | Claim | Reality |
 |---|---|
 | Integrity | Unkeyed SHA-256. Detects edits that do not also replace the digest. Anyone who can replace both content and digest passes. |
-| Authority | Presence check by default. With a verifier, the verifier decides; the package does not check the verifier. |
+| Authority | See "Authority: read this first" at the top. Not repeated here. |
 | Verifier failure | A raised exception, or any reply other than literal `True` or `False`, refuses as `AUTHORITY_VERIFIER_UNAVAILABLE`. Literal `False` refuses as `MISSING_AUTHORITY`. No verifier outcome accepts. Exception text is kept out of the verdict. |
 | Production profile | Checks only that a callable exists. It does not establish that the callable is trustworthy. |
 | Scope | Validated and preserved. Enforcement against downstream operations is the orchestrator's job. |
@@ -125,9 +133,7 @@ tests/                adversarial, integrity-bypass, unit, dashboard, authority 
 | Writes and logging | Writes nothing durable. No refusal log. The optional `GateDashboard` keeps outcome counts only, which an operator may use but which are not evidence of decisions. |
 | Immutability | Frozen objects are an API guarantee. They do not protect against code running in the same process. |
 | Runtime | No protection against a compromised runtime. |
-| Not implemented | Issuer trust, signatures, expiry, revocation, action and scope binding, replay protection, producer authentication, any service, authn, or rate limit. |
-
-The gateway does not authenticate producers, does not persist or hash-chain across artifacts, and does not implement identity or an actor registry.
+| Not implemented | Producer authentication, any service, authn, or rate limit. Authority items are listed at the top. |
 
 Full threat model: `SECURITY.md`. Guarantees and their limits: `INVARIANTS.md`. Verifier contract and status of each requirement: `docs/AUTHORITY_CONTRACT.md`.
 
@@ -159,6 +165,11 @@ Epistemic vocabulary: this gateway's `FACT`/`INFERENCE`/… is **not identical**
 
 ## CNS integration and compatibility (optional)
 
+**CNS connection, at a glance (checked 2026-11-10):**
+- This repository's side: `src/governance_gateway/cns_connector.py`. Optional.
+- CNS's side: `cns_composition/repo_gates.py`. CNS's connection list (`contracts/cns-links.json`) marks the link two-way.
+- Built: yes. Tested: yes (the real-CNS tests are the 465 versus 274 difference). Used by this repository's normal code path: no. Today only CNS's spine script uses the connector; observe-perceive imports the gateway directly.
+
 The package runs without CNS. Nothing is imported from CNS when the package loads, and the suite passes with CNS absent. With CNS present, `governance_gateway.cns_connector` expresses the verdict as a CNS gate result, so it can be resolved alongside other gates.
 
 ```
@@ -181,7 +192,7 @@ resolve([verdict])                    # PASS or TERMINAL_BREACH, fail-closed
 
 | Governance_Gateway | CNS |
 |---|---|
-| Judges the admission door (ALPHA), before policy, decision or execution exist for the artifact. | `ALPHA` gate. The connector produces no outcome end, so `cns_chain(...).complete()` is `False` by design. |
+| Judges the admission door (CNS gate position ALPHA, the entry end, unrelated to the interconnected_alpha repository), before policy, decision or execution exist for the artifact. | `ALPHA` gate. The connector produces no outcome end, so `cns_chain(...).complete()` is `False` by design. |
 | `accepted` | `PASS`, empty `reason`. |
 | Refused, any `GateReason` | `TERMINAL_BREACH`, `reason` is the `GateReason` value unchanged. Never `RETRY`: the gateway never repairs or re-renders. |
 | Native verdict that contradicts itself, or is bound to another artifact, or has a non-bool `accepted` | `TERMINAL_BREACH` with reason `INCONSISTENT_VERDICT`. A refusal with no reason is still a refusal (`NO_REASON_GIVEN`). |
@@ -215,17 +226,17 @@ Runnable library. Not a deployed service.
 
 ## Maturity, gaps and release status
 
-Snapshot labels, 2026-11-07. Each result below states where it was produced.
+Snapshot labels, checked 2026-11-10. Each result below states where it was produced.
 
 | What | Source and state |
 |---|---|
-| **Current main** `d7b2749` | CI green on Python 3.11 and 3.12, with and without CNS, checked against GitHub check runs. |
-| **Branch measured locally** `95e5015` plus uncommitted changes | Local runs only, not through CI. With CNS installed: 465 passed, 0 failed. With `GOVERNANCE_GATEWAY_REQUIRE_CNS=1`: 465 passed. With the `cns` import blocked: 274 passed, 1 skipped (the real-CNS connector module). |
+| **Current main** `234fbf3` | CI green on Python 3.11 and 3.12, with and without CNS, checked against GitHub check runs on 2026-11-10. |
+| **Local clean-environment run** `234fbf3` | Not CI. With CNS installed: 465 passed, 0 failed. With the `cns` import blocked: 274 passed, 1 skipped (the real-CNS connector module). |
 | **Historical** `cd9cc62` | Counts were 459 and 268 at that commit. Earlier CI green there. Not a current result. |
-| **Historical** evidence-spine run, 2026-11-07 | CNS's `chains/evidence_spine.py`, 56 scenarios, exit 0, 3 recorded GAPs, with Governance_Gateway at `1bede83`. **Not re-run** in this documentation pass. Not evidence of the current integration state. |
+| Evidence-spine run, 2026-11-10 | Re-run locally, not CI: CNS `03eca66`, HERALD `63ed11b`, TIE `5a0dc59`, Conservation_Kernel `a03f237`, CCC `f3ce7a3`, Governance_Gateway `234fbf3`. Exit 0, 56 results ok, 3 recorded GAPs. |
+| **Historical** evidence-spine run, 2026-11-07 | Same script, 56 scenarios, exit 0, 3 GAPs, Governance_Gateway at `1bede83`. Superseded by the row above. |
 | Version and release | `0.1.0`, untagged. Tagging is the owner's decision. |
 | CNS pin | The optional `cns` extra is pinned to v2.3.0 in `pyproject.toml`. |
-| Branch CI | The branch measured locally has not been through CI. |
 | Python floor | `Authority \| None` union syntax requires 3.11. Sibling projects declare 3.10 or newer in their project files (checked 2026-11-06, not re-checked). |
 
-Known gaps: the authority items listed under "Security model and limitations"; the evidence-spine run is historical; CNS versions other than 2.3.0 are unverified.
+Known gaps: the authority items listed under "Security model and limitations"; CNS versions other than 2.3.0 are unverified.
