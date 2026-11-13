@@ -205,7 +205,7 @@ The connector translates and decides nothing. If the gateway itself raises, the 
 Without CNS, the connector's functions raise `CnsNotInstalled` with the install command. The same error appears when CNS is installed but cannot be imported or lacks the names the connector uses. The connector checks for `GateChain`, `GateOutcome`, `GatePosition`, `GateResult` and `subject_digest`. It does not check a version number.
 
 **CNS compatibility, three separate facts:**
-- **Tested and pinned:** CNS v3.0.0 (`pyproject.toml`). The only version the tests run against.
+- **Tested and pinned:** CNS v4.0.0 (`pyproject.toml`). The only version the tests run against.
 - **Declared minimum interface:** none declared as a version number. The connector declares the names above. A code comment says `subject_digest` arrived in CNS 1.2.0. That is **not verified** here.
 - **Verified compatibility range:** v3.0.0 only.
 
@@ -236,7 +236,7 @@ Snapshot labels, checked 2026-11-10. Each result below states where it was produ
 | Evidence-spine run, 2026-11-10 | Re-run locally, not CI: CNS `03eca66`, HERALD `63ed11b`, TIE `5a0dc59`, Conservation_Kernel `a03f237`, CCC `f3ce7a3`, Governance_Gateway `234fbf3`. Exit 0, 56 results ok, 3 recorded GAPs. |
 | **Historical** evidence-spine run, 2026-11-07 | Same script, 56 scenarios, exit 0, 3 GAPs, Governance_Gateway at `1bede83`. Superseded by the row above. |
 | Version and release | `0.1.0`, untagged. Tagging is the owner's decision. |
-| CNS pin | The optional `cns` extra is pinned to v3.0.0 in `pyproject.toml`. |
+| CNS pin | The optional `cns` extra is pinned to v4.0.0 in `pyproject.toml`. |
 | Python floor | `Authority \| None` union syntax requires 3.11. Sibling projects declare 3.10 or newer in their project files (checked 2026-11-06, not re-checked). |
 
-Known gaps: the authority items listed under "Security model and limitations"; CNS versions other than 3.0.0 are unverified.
+Known gaps: the authority items listed under "Security model and limitations"; CNS versions other than 4.0.0 are unverified.
