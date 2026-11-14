@@ -21,10 +21,11 @@ class GatewayProfile(str, Enum):
     digest is unkeyed, so without an ``authority_verifier`` any well-formed
     ``Authority`` passes, including one on an edited and re-sealed artifact.
 
-    PRODUCTION refuses to build a gateway without a caller-supplied callable
-    ``authority_verifier``. The package ships no default verifier and no key,
-    and a production gateway whose verifier is later removed refuses every
-    artifact with ``MISSING_AUTHORITY``.
+    PRODUCTION refuses to build a gateway without at least one caller-supplied
+    callable verifier (``authority_verifier`` or ``artifact_authority_verifier``).
+    The package ships no default verifier and no key, and a production gateway
+    whose verifiers are all later removed refuses every artifact with
+    ``MISSING_AUTHORITY``.
     """
 
     DEVELOPMENT = "development"
@@ -40,16 +41,25 @@ class GovernanceGateway:
         authority_verifier: Callable[[Authority], bool] | None = None,
         *,
         profile: GatewayProfile | str = GatewayProfile.DEVELOPMENT,
+        artifact_authority_verifier: Callable[[Authority, str], bool] | None = None,
     ) -> None:
         try:
             resolved = GatewayProfile(profile)
         except ValueError:
             raise ValueError(f"unknown gateway profile: {profile!r}") from None
-        if resolved is GatewayProfile.PRODUCTION and not callable(authority_verifier):
+        if resolved is GatewayProfile.PRODUCTION and not (
+            callable(authority_verifier) or callable(artifact_authority_verifier)
+        ):
             raise ValueError(
-                "the production profile requires an explicit callable authority_verifier;"
-                " there is no default"
+                "the production profile requires an explicit callable authority_verifier"
+                " or artifact_authority_verifier; there is no default"
             )
+        for name, value in (
+            ("authority_verifier", authority_verifier),
+            ("artifact_authority_verifier", artifact_authority_verifier),
+        ):
+            if resolved is GatewayProfile.PRODUCTION and value is not None and not callable(value):
+                raise ValueError(f"{name} must be callable in the production profile")
         self._profile = resolved
         #: Optional outcome counter. Records only; never changes a decision.
         self.dashboard = dashboard
@@ -60,6 +70,11 @@ class GovernanceGateway:
         #: with AUTHORITY_VERIFIER_UNAVAILABLE (a malformed response or outage is
         #: not proof the grant is invalid). The verifier receives only the Authority.
         self.authority_verifier = authority_verifier
+        #: Optional artifact-aware check, called as ``f(authority, digest)`` where
+        #: ``digest`` is the artifact's verified integrity digest, so a verifier can
+        #: bind an authority to exactly this artifact. Same answer semantics as
+        #: ``authority_verifier``. If both are set, both must accept.
+        self.artifact_authority_verifier = artifact_authority_verifier
 
     @property
     def profile(self) -> GatewayProfile:
@@ -94,7 +109,9 @@ class GovernanceGateway:
             if not isinstance(artifact.authority, Authority):
                 return GateResult.reject(GateReason.MISSING_AUTHORITY)
 
-            if self._profile is GatewayProfile.PRODUCTION and not callable(self.authority_verifier):
+            if self._profile is GatewayProfile.PRODUCTION and not (
+                callable(self.authority_verifier) or callable(self.artifact_authority_verifier)
+            ):
                 return GateResult.reject(GateReason.MISSING_AUTHORITY)
 
             if not isinstance(artifact.epistemic_status, EpistemicStatus):
@@ -121,21 +138,35 @@ class GovernanceGateway:
             # The external verifier runs only after the artifact is well-formed
             # and its integrity matches, so invalid artifacts never reach it.
             if self.authority_verifier is not None:
-                try:
-                    answer = self.authority_verifier(artifact.authority)
-                except Exception:
-                    # A fault or outage in the verifier says nothing about the grant.
-                    return GateResult.reject(GateReason.AUTHORITY_VERIFIER_UNAVAILABLE)
-                if answer is True:
-                    pass
-                elif answer is False:
-                    return GateResult.reject(GateReason.MISSING_AUTHORITY)
-                else:
-                    # Neither True nor False: a malformed response is a verifier
-                    # failure, not evidence about the grant. Fail closed.
-                    return GateResult.reject(GateReason.AUTHORITY_VERIFIER_UNAVAILABLE)
+                refusal = self._verifier_refusal(self.authority_verifier, artifact.authority)
+                if refusal is not None:
+                    return refusal
+            # The artifact-aware verifier also receives the verified digest. When
+            # both verifiers are set, both must accept.
+            if self.artifact_authority_verifier is not None:
+                refusal = self._verifier_refusal(
+                    self.artifact_authority_verifier, artifact.authority, expected
+                )
+                if refusal is not None:
+                    return refusal
 
             return GateResult.accept(artifact)
         except Exception:
             # Any ordinary error while judging is a refusal, never a crash or an accept.
             return GateResult.reject(GateReason.INVALID_ARTIFACT)
+
+    @staticmethod
+    def _verifier_refusal(verifier: Callable[..., Any], *args: Any) -> GateResult | None:
+        """Run one verifier. None means it accepted; otherwise the refusal."""
+        try:
+            answer = verifier(*args)
+        except Exception:
+            # A fault or outage in the verifier says nothing about the grant.
+            return GateResult.reject(GateReason.AUTHORITY_VERIFIER_UNAVAILABLE)
+        if answer is True:
+            return None
+        if answer is False:
+            return GateResult.reject(GateReason.MISSING_AUTHORITY)
+        # Neither True nor False: a malformed response is a verifier failure,
+        # not evidence about the grant. Fail closed.
+        return GateResult.reject(GateReason.AUTHORITY_VERIFIER_UNAVAILABLE)

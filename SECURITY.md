@@ -31,7 +31,7 @@ Reports about these limits are welcome. They are most useful when they show a co
 The gateway is a library. It returns a decision and cannot force anything. A production deployment that relies on it needs all of the following, provided by the deployer:
 
 - The `PRODUCTION` profile, so the gateway refuses to run without a verifier.
-- A trusted `authority_verifier`. The package does not supply one, and `PRODUCTION` only checks that a callable exists, not that it is trustworthy.
+- A trusted `authority_verifier` or `artifact_authority_verifier` (the latter also receives the verified digest, so it can bind an authority to one artifact). The package does not supply one, and `PRODUCTION` only checks that a callable exists, not that it is trustworthy.
 - Downstream enforcement of every refusal. A caller that ignores a `GateResult` is outside what the gateway can prevent.
 - Producer authentication, handled by separate controls. The digest does not provide it.
 - Logging and monitoring of refusals. The package keeps no durable log.

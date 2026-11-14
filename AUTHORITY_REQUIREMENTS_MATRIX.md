@@ -17,7 +17,7 @@ Source of requirements: docs/AUTHORITY_CONTRACT.md. "Result" is from a local tes
 | R11 Malformed verifier response refuses | IMPLEMENTED (as AUTHORITY_VERIFIER_UNAVAILABLE) | `gateway.py` else branch | `test_a_malformed_answer_is_a_verifier_failure_not_a_verdict_on_the_grant` (6 cases) | PASS | none |
 | R12 Tampered artifact never reaches verifier | IMPLEMENTED | `gateway.py` order | `test_verifier_is_not_called_for_an_artifact_with_a_bad_digest` | PASS | none |
 | R13 PRODUCTION refuses without verifier | IMPLEMENTED (existence check only) | `gateway.py` `__init__`, `_judge` | `test_production_without_a_verifier_refuses_to_be_built`; `..._non_callable_...` | PASS | Trust of verifier is caller's |
-| R14 Verifier request object with artifact context | NOT IMPLEMENTED; public API change, owner decision | none | none | n/a | Owner decision before any change |
+| R14 Verifier receives artifact context | IMPLEMENTED (interface only; digest, not a request object) | `gateway.py` `artifact_authority_verifier` | `tests/test_artifact_authority_verifier.py` | PASS | Scope, action, signature, expiry, revocation still NOT IMPLEMENTED |
 | Verifier signature `authority_verifier(Authority) -> bool` | IMPLEMENTED | `gateway.py` | `test_with_no_verifier_any_authority_is_accepted` and related | PASS | none |
 | Verifier returns literal False | IMPLEMENTED | `gateway.py` | `test_an_explicit_false_is_a_refusal_of_the_grant` | PASS | none |
 | Verifier returns None | IMPLEMENTED (malformed, AUTHORITY_VERIFIER_UNAVAILABLE) | `gateway.py` | malformed test, `None` case | PASS | none |

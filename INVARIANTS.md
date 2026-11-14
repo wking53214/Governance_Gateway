@@ -48,7 +48,7 @@ Passing the gateway does not make content authoritative.
 
 An object possessing a capability or being presented to the gateway does not thereby gain authority. V0.1 has no state-transition API and therefore rejects missing authority rather than manufacturing it.
 
-Scope of this guarantee: the gateway checks that an `Authority` is present and well-formed, not that it was issued. In the default development profile, with no `authority_verifier` supplied, any well-formed `Authority` passes, including one attached to an edited artifact that was re-sealed. A caller can supply an `authority_verifier` to check that an authority is genuinely held. The production profile refuses to run without one. The production profile checks only that a callable verifier exists; it does not establish that the verifier is trustworthy. The gateway also cannot force a caller to act on a refusal.
+Scope of this guarantee: the gateway checks that an `Authority` is present and well-formed, not that it was issued. In the default development profile, with no `authority_verifier` supplied, any well-formed `Authority` passes, including one attached to an edited artifact that was re-sealed. A caller can supply an `authority_verifier` to check that an authority is genuinely held, or an `artifact_authority_verifier` that also receives the verified digest so the authority can be bound to this artifact. The production profile refuses to run without one. The production profile checks only that a callable verifier exists; it does not establish that the verifier is trustworthy. The gateway also cannot force a caller to act on a refusal.
 
 ## Scope conservation
 
@@ -84,7 +84,8 @@ Acting on an accepted artifact is the caller's decision, and the caller must che
 
 - An `authority_verifier` that returns literal `True` accepts the authority. Literal `False` refuses with `MISSING_AUTHORITY`. Any other return value refuses with `AUTHORITY_VERIFIER_UNAVAILABLE`, as a malformed response.
 - An `authority_verifier` that raises refuses with `AUTHORITY_VERIFIER_UNAVAILABLE`. Its exception text is not in the verdict.
-- The verifier is called only after the artifact passes the integrity check.
+- The same answer semantics apply to `artifact_authority_verifier(authority, digest)`. If both verifiers are set, both must accept.
+- Verifiers are called only after the artifact passes the integrity check.
 - Neither outcome ever produces `ACCEPT`.
 
 ## Dashboard isolation

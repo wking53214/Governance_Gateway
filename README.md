@@ -9,8 +9,8 @@ It answers one question: is this artifact well-formed, untampered, and carrying 
 - **An authority record is a claim, not proof.** `Authority(actor, grant)` holds two non-empty strings. Their presence does not show that the grant was issued, is current, or permits the operation.
 - **Admission is not authorization.** Admission means the artifact passed the gateway's checks. Authorization means permission to perform a specific operation. This package does not grant it.
 - **DEVELOPMENT** (default) accepts any well-formed authority record without verification.
-- **PRODUCTION** (`profile=GatewayProfile.PRODUCTION`) refuses to run without a caller-supplied `authority_verifier` that the caller trusts. The package ships no verifier and no key.
-- **The verifier receives only the `Authority`**, not the artifact, its scope, or the requested action.
+- **PRODUCTION** (`profile=GatewayProfile.PRODUCTION`) refuses to run without a caller-supplied verifier (`authority_verifier` or `artifact_authority_verifier`) that the caller trusts. The package ships no verifier and no key.
+- **`authority_verifier` receives only the `Authority`**, not the artifact, its scope, or the requested action. The optional **`artifact_authority_verifier(authority, digest)`** also receives the artifact's verified integrity digest, so a verifier you supply can bind an authority to exactly one artifact. If both are set, both must accept. Neither receives scope, payload or action, and the package ships no verifier or key.
 - **Not implemented:** issuer signatures, grant expiry, revocation, action or scope binding, replay protection. See `docs/AUTHORITY_CONTRACT.md` for each item's status.
 
 See `ARCHITECTURE.md` (trust model), `SECURITY.md` (threat model and reporting), and `INVARIANTS.md` (what is guaranteed).
