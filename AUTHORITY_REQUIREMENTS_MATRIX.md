@@ -37,6 +37,6 @@ Source of requirements: docs/AUTHORITY_CONTRACT.md. "Result" is from a local tes
 
 ## Summary
 
-- IMPLEMENTED with tests: R5 (caller-supplied, partial), R9, R10, R11, R12, R13 (existence only), the verifier signature, the False and malformed mappings, dashboard isolation.
-- NOT IMPLEMENTED: R1, R2, R3, R4, R6, R7, R8, R14. No test pretends otherwise.
+- IMPLEMENTED with tests: R5 (caller-supplied, partial), R9, R10, R11, R12, R13 (existence only), R14 (interface only: authority and digest, no action or scope), the verifier signature, the False and malformed mappings, dashboard isolation.
+- NOT IMPLEMENTED: R1, R2, R3, R4, R6, R7, R8. No test pretends otherwise.
 - No document may describe issuer trust, signatures, expiry, revocation, action binding, or replay protection as implemented.

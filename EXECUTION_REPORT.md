@@ -1,5 +1,7 @@
 # Execution report: Governance_Gateway complete documentation, contract and adversarial closure (second pass)
 
+> **Historical record.** This report describes the 2026-11-07 pass at `95e5015` (base `d7b2749`). Its commit IDs and test counts are not current. For current status see the README maturity table (`5dead3c`, 2026-11-16).
+
 Date: 2026-11-07. Scope: `wking53214/governance_gateway` only. No sibling repository touched.
 
 ## Starting state (Phase 0)

@@ -168,7 +168,7 @@ Epistemic vocabulary: this gateway's `FACT`/`INFERENCE`/… is **not identical**
 **CNS connection, at a glance (checked 2026-11-10):**
 - This repository's side: `src/governance_gateway/cns_connector.py`. Optional.
 - CNS's side: `cns_composition/repo_gates.py`. CNS's connection list (`contracts/cns-links.json`) marks the link two-way.
-- Built: yes. Tested: yes (the real-CNS tests are the 465 versus 274 difference). Used by this repository's normal code path: no. Today only CNS's spine script uses the connector; observe-perceive imports the gateway directly.
+- Built: yes. Tested: yes (the real-CNS tests are the difference between the CNS-present and CNS-absent counts in the maturity table). Used by this repository's normal code path: no. Today only CNS's spine script uses the connector; observe-perceive imports the gateway directly.
 
 The package runs without CNS. Nothing is imported from CNS when the package loads, and the suite passes with CNS absent. With CNS present, `governance_gateway.cns_connector` expresses the verdict as a CNS gate result, so it can be resolved alongside other gates.
 
@@ -207,7 +207,7 @@ Without CNS, the connector's functions raise `CnsNotInstalled` with the install 
 **CNS compatibility, three separate facts:**
 - **Tested and pinned:** CNS v4.0.0 (`pyproject.toml`). The only version the tests run against.
 - **Declared minimum interface:** none declared as a version number. The connector declares the names above. A code comment says `subject_digest` arrived in CNS 1.2.0. That is **not verified** here.
-- **Verified compatibility range:** v3.0.0 only.
+- **Verified compatibility range:** v4.0.0 only (the pinned and tested version). Other versions, including v3.0.0, are not verified by the current tests.
 
 | Test file | Needs CNS? | Runs in CI? |
 |---|---|---|
@@ -226,15 +226,16 @@ Runnable library. Not a deployed service.
 
 ## Maturity, gaps and release status
 
-Snapshot labels, checked 2026-11-10. Each result below states where it was produced.
+Snapshot labels, checked 2026-11-16 against `5dead3c`. Each result below states where it was produced.
 
 | What | Source and state |
 |---|---|
-| **Current main** `234fbf3` | CI green on Python 3.11 and 3.12, with and without CNS, checked against GitHub check runs on 2026-11-10. |
-| **Local clean-environment run** `234fbf3` | Not CI. With CNS installed: 465 passed, 0 failed. With the `cns` import blocked: 274 passed, 1 skipped (the real-CNS connector module). |
+| **Current main** `5dead3c` | CI green on Python 3.11 and 3.12, with and without CNS, checked against GitHub check runs on 2026-11-16. |
+| **Local clean-environment run** `5dead3c` | Not CI. With CNS v4.0.0 installed and `GOVERNANCE_GATEWAY_REQUIRE_CNS=1`: 493 passed, 0 failed. With the `cns` import blocked: 302 passed, 1 skipped (the real-CNS connector module). Run 2026-11-16. |
+| **Historical** `234fbf3` | Counts were 465 and 274 at that commit. Not a current result. |
 | **Historical** `cd9cc62` | Counts were 459 and 268 at that commit. Earlier CI green there. Not a current result. |
-| Evidence-spine run, 2026-11-10 | Re-run locally, not CI: CNS `03eca66`, HERALD `63ed11b`, TIE `5a0dc59`, Conservation_Kernel `a03f237`, CCC `f3ce7a3`, Governance_Gateway `234fbf3`. Exit 0, 56 results ok, 3 recorded GAPs. |
-| **Historical** evidence-spine run, 2026-11-07 | Same script, 56 scenarios, exit 0, 3 GAPs, Governance_Gateway at `1bede83`. Superseded by the row above. |
+| **Historical** evidence-spine run, 2026-11-10 | Re-run locally, not CI: CNS `03eca66`, HERALD `63ed11b`, TIE `5a0dc59`, Conservation_Kernel `a03f237`, CCC `f3ce7a3`, Governance_Gateway `234fbf3`. Exit 0, 56 results ok, 3 recorded GAPs. |
+| **Historical** evidence-spine run, 2026-11-07 | Same script, 56 scenarios, exit 0, 3 GAPs, Governance_Gateway at `1bede83`. Superseded by the 2026-11-10 row. |
 | Version and release | `0.1.0`, untagged. Tagging is the owner's decision. |
 | CNS pin | The optional `cns` extra is pinned to v4.0.0 in `pyproject.toml`. |
 | Python floor | `Authority \| None` union syntax requires 3.11. Sibling projects declare 3.10 or newer in their project files (checked 2026-11-06, not re-checked). |
