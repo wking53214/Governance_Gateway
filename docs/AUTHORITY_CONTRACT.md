@@ -89,6 +89,8 @@ A verifier must answer `True` only when all of the following hold:
 3. **Bound to this artifact.** When the verifier is `artifact_authority_verifier`, the signed grant names the artifact digest it was given, so a grant cannot be reused on a different artifact.
 4. **Not expired.** Expiry is checked by the verifier, because `Authority` has no expiry field (decision B). Issuers should use short lifetimes: a revoked grant stays valid until it expires.
 
+**Grant lifetime limit (required of each deployment).** The deployer must choose a maximum grant lifetime, write it down, and configure the verifier to refuse any grant that lasts longer than that limit or has no stated expiry. This package names no number, because the right limit depends on the deployment. Cancelling a grant takes effect only when it expires (decision B), so the limit is also the longest time a cancelled or stolen grant can keep working. The gateway does not check expiry or lifetime itself.
+
 If any check cannot be completed, for example the key file is missing, empty or unreadable, or a trust service is unreachable, the verifier must not answer `True`. It should raise an exception or return a non-boolean. The gateway then refuses with `AUTHORITY_VERIFIER_UNAVAILABLE` (decision C, section 5). A verifier must never default to `True`.
 
 Not covered, and not claimed: the action or scope a grant permits (R6, R7), replay protection (R8), and testing of the verifier itself. Each deployment must test its own verifier against the four checks above.
