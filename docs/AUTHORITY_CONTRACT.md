@@ -93,6 +93,8 @@ A verifier must answer `True` only when all of the following hold:
 
 If any check cannot be completed, for example the key file is missing, empty or unreadable, or a trust service is unreachable, the verifier must not answer `True`. It should raise an exception or return a non-boolean. The gateway then refuses with `AUTHORITY_VERIFIER_UNAVAILABLE` (decision C, section 5). A verifier must never default to `True`.
 
+**Action and scope (R6, R7): a stated limit of this package.** The gateway can show that an authority is bound to one exact artifact (by its digest). It cannot show what that authority permits. `Artifact` has no action field, neither verifier is told which action is requested, and declared scope is validated and recorded but not enforced. So an accepted artifact means "this artifact is authorized", not "authorized for this action or scope". Whatever acts on an accepted artifact (the policy or execution step after the gateway) must check that the grant covers the action, or the check is not done. This package does not model actions and does not decide policy.
+
 Not covered, and not claimed: the action or scope a grant permits (R6, R7), replay protection (R8), and testing of the verifier itself. Each deployment must test its own verifier against the four checks above.
 
 ## 6. Acceptance criteria
