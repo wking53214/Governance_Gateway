@@ -78,6 +78,21 @@ Current (IMPLEMENTED), two optional forms that may be combined:
 | Verifier raises | Refused, `AUTHORITY_VERIFIER_UNAVAILABLE`; text not in verdict |
 | Artifact fails integrity | Refused before the verifier is called |
 
+## 5a. What a production verifier must do (REQUIREMENTS ON THE DEPLOYER, not enforced by this package)
+
+This package refuses to start in the production profile without a verifier, and it obeys the verifier's answer. It does not check that the verifier is trustworthy. These are the duties of whoever supplies the verifier. They follow decisions A, B and C in section 2.
+
+A verifier must answer `True` only when all of the following hold:
+
+1. **Known issuer.** The grant was issued by an issuer on the operator's pinned list of public keys (decision A). An unknown issuer gets `False`.
+2. **Valid signature.** The grant carries a signature that verifies against that issuer's pinned key.
+3. **Bound to this artifact.** When the verifier is `artifact_authority_verifier`, the signed grant names the artifact digest it was given, so a grant cannot be reused on a different artifact.
+4. **Not expired.** Expiry is checked by the verifier, because `Authority` has no expiry field (decision B). Issuers should use short lifetimes: a revoked grant stays valid until it expires.
+
+If any check cannot be completed, for example the key file is missing, empty or unreadable, or a trust service is unreachable, the verifier must not answer `True`. It should raise an exception or return a non-boolean. The gateway then refuses with `AUTHORITY_VERIFIER_UNAVAILABLE` (decision C, section 5). A verifier must never default to `True`.
+
+Not covered, and not claimed: the action or scope a grant permits (R6, R7), replay protection (R8), and testing of the verifier itself. Each deployment must test its own verifier against the four checks above.
+
 ## 6. Acceptance criteria
 
 Criteria for the parts of this contract that are IMPLEMENTED. A criterion is met only when the named test runs and passes in CI.
