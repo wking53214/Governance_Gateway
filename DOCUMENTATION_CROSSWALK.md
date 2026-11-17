@@ -1,6 +1,6 @@
 # Documentation crosswalk
 
-Status: CURRENT (verified against source and a test in `95e5015` plus working tree), HISTORICAL (true of a past snapshot), INFERRED (follows from design, not tested), DEFERRED (not implemented), UNKNOWN (not verified).
+Status: CURRENT (verified against source and a test at `5dead3c`), HISTORICAL (true of a past snapshot), INFERRED (follows from design, not tested), DEFERRED (not implemented), UNKNOWN (not verified).
 
 | Claim | Implementation | Documentation | Test | Status |
 |---|---|---|---|---|
@@ -63,8 +63,8 @@ Status: CURRENT (verified against source and a test in `95e5015` plus working tr
 | Exceptions from the gateway propagate; never PASS | `cns_connector.py` | connector docstring | `test_an_error_inside_the_gateway_propagates_and_is_never_a_pass` | CURRENT |
 | Chain is admission-only; complete() is False | `cns_connector.py` | README; connector docstring | `test_the_chain_is_admission_only_and_says_so` | CURRENT |
 | Live decision path and evidence spine are separate workflows | Architecture | README | None (documentation structure) | INFERRED |
-| Repository tests: 465 (CNS present), 274 + 1 skipped (CNS absent) | Test suite | README maturity | Measured this pass | CURRENT (local, uncommitted tree) |
-| CI green on main `d7b2749` | GitHub check runs | README release table | Verified via API this pass (test 3.11, 3.12; cns 3.11, 3.12 success) | CURRENT |
+| Repository tests: 493 (CNS v4.0.0 present), 302 + 1 skipped (CNS absent) | Test suite | README maturity | Measured 2026-11-16 at `5dead3c` | CURRENT (local run, not CI) |
+| CI green on main `5dead3c` | GitHub check runs | README maturity table | Verified via API 2026-11-16 (test 3.11, 3.12; cns 3.11, 3.12 success) | CURRENT |
 | CI green on `cd9cc62` | GitHub (earlier) | README (labelled historical) | Earlier session | HISTORICAL |
 | Spine run 2026-11-07, 56 scenarios, exit 0, 3 GAPs, Gateway at 1bede83 | CNS script | README spine section | Not re-run | HISTORICAL / UNKNOWN |
 | Python 3.11+ floor; sibling projects 3.10 or newer | pyproject (3.11) | README | Sibling claim not re-checked | UNKNOWN (sibling part) |
