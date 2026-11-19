@@ -37,7 +37,7 @@ This repository is one of five gates on the evidence SPINE, in this order: HERAL
 
 CNS is the coordinating contract. It holds the gate shapes and combines the five verdicts into one decision, binding each to its subject. It does not replace any of the five repositories. The optional `cns_connector` is how this gateway's verdict takes its place in that contract, at the admission (`ALPHA`) end.
 
-This is separate from the live decision path, where Governance_Gateway is the first stage (`ADMISSION`) of `observe-perceive`. The two sequences are different workflows and should not be read as one pipeline.
+This is separate from the orchestrator path of `observe-perceive`, where a caller passes Governance_Gateway's sealed admission to the orchestrator. The two sequences are different workflows and should not be read as one pipeline.
 
 ## Trust model
 
