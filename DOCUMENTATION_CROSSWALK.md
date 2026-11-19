@@ -62,7 +62,7 @@ Status: CURRENT (verified against source and a test at `5dead3c`), HISTORICAL (t
 | Re-judgment in connector does not touch the dashboard | `cns_connector.py` `_judge` | connector docstring | `test_the_rejudgment_does_not_touch_an_attached_dashboard` | CURRENT |
 | Exceptions from the gateway propagate; never PASS | `cns_connector.py` | connector docstring | `test_an_error_inside_the_gateway_propagates_and_is_never_a_pass` | CURRENT |
 | Chain is admission-only; complete() is False | `cns_connector.py` | README; connector docstring | `test_the_chain_is_admission_only_and_says_so` | CURRENT |
-| Live decision path and evidence spine are separate workflows | Architecture | README | None (documentation structure) | INFERRED |
+| Orchestrator path and evidence spine are separate workflows | Architecture | README | None (documentation structure) | INFERRED |
 | Repository tests: 493 (CNS v4.0.0 present), 302 + 1 skipped (CNS absent) | Test suite | README maturity | Measured 2026-11-16 at `5dead3c` | CURRENT (local run, not CI) |
 | CI green on main `5dead3c` | GitHub check runs | README maturity table | Verified via API 2026-11-16 (test 3.11, 3.12; cns 3.11, 3.12 success) | CURRENT |
 | CI green on `cd9cc62` | GitHub (earlier) | README (labelled historical) | Earlier session | HISTORICAL |

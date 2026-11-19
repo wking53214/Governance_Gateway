@@ -15,13 +15,20 @@ It answers one question: is this artifact well-formed, untampered, and carrying 
 
 See `ARCHITECTURE.md` (trust model), `SECURITY.md` (threat model and reporting), and `INVARIANTS.md` (what is guaranteed).
 
+## Role Within ≡TACK, in authority terms
+
+- **Does:** evaluation of one artifact's shape and integrity, and a refuse-or-accept return value. It sits at the admission door (entry end).
+- **Does not:** define policy, authorize, authenticate, enforce, store, or generate durable evidence. It writes nothing and keeps no refusal log.
+- **Fail behavior.** Closed on errors: an ordinary exception during evaluation is `INVALID_ARTIFACT`, and a verifier that raises or returns anything but literal `True` or `False` is `AUTHORITY_VERIFIER_UNAVAILABLE`. Open by default: the DEVELOPMENT profile accepts any well-formed authority record, and `observe-perceive` calls the gateway with no verifier.
+- **Bypass conditions.** A caller can ignore a refusal. Anyone who can replace both content and its unkeyed SHA-256 digest passes. A compromised runtime defeats it.
+
 ## Where it sits in ≡TACK
 
 ≡TACK is the whole library of repositories. STACK-kernel is one separate repository and is not the same thing. Governance_Gateway is a shared admission check used in two different workflows, not a stage owned by one chain.
 
 Three terms are used with these meanings throughout:
 
-- **Live decision path**: the sequence in which `observe-perceive` runs its gates. Governance_Gateway is its **first** stage, the early admission boundary.
+- **Orchestrator path**: the sequence in which `observe-perceive`'s orchestrator runs its stages when a caller invokes it. Governance_Gateway sits in front of it: the caller passes the gateway's sealed admission in.
 - **Evidence SPINE**: the sequence in which a document passes through five repositories. Governance_Gateway is its **fourth** stage.
 - **CNS**: the coordinating contract. It holds the gate shapes and the roster that combines the five verdicts. It does not replace any of the five repositories.
 
@@ -41,7 +48,26 @@ CNS coordinates the five gate judgments: it binds each to the subject and coordi
 
 `chains/evidence_spine.py` in the CNS repository runs the spine end to end. That script, not this repository, wires it.
 
-### The ≡TACK live decision path
+### The orchestrator path (what runs today)
+
+```text
+caller ── Governance_Gateway.evaluate (this repository) ── sealed admission ──┐
+                                                                             ▼
+observe-perceive GovernanceOrchestrator
+    1. OBSERVE assesses the reading (first, in every profile)
+    2. request and source-time checks; the admission's id, scope and integrity digest are recorded
+    3. PERCEIVE
+    4. optional containment (fortress-kernel)
+    5. Conservation_Kernel verification
+    6. execution approval
+    7. scope check
+    8. executor behind execution_guard
+    9. audit-chain link
+```
+
+**Status (INSPECTED 2026-11-19 in observe-perceive's orchestrator code at `c545870`).** The orchestrator uses the gateway's result only when the caller passes one in. observe-perceive pins this repository at `c507be7`, 48 commits behind `main` on 2026-11-19.
+
+### Planned design order (not running code)
 
 ```text
 ADMISSION (this repository)
@@ -54,6 +80,8 @@ ADMISSION (this repository)
     → CUSTODY       interconnected_delta / sentinel_os
 ```
 
+This is the design order. observe-perceive's orchestrator imports none of interconnected_alpha, interconnected_zeta, interconnected_beta, interconnected_delta, GSA-815 or sentinel_os (VERIFIED by search on 2026-11-19).
+
 [`observe-perceive`](https://github.com/wking53214/observe-perceive) wires this repository in through `gateway_admission_adapter.py`, which imports `GovernanceGateway` and calls `evaluate`. It passes no `authority_verifier`. A refusal here is `NOT_ADMITTED`: the artifact never reached policy. It is not a policy `REJECTED`.
 
 Question this repository answers: *is this artifact well-formed, untampered, scoped, provenanced, and carrying an authority record?*
@@ -61,8 +89,8 @@ Question it does **not** answer: *is this request permitted under policy?* That 
 
 ### Where this fits
 
-- **Family:** the evidence SPINE, gate 4 of 5. It receives a judged root artifact from Conservation_Kernel (handed over by CNS's spine script, not by imports) and hands accept or refuse onward toward CCC.
-- **Second use:** first stage of observe-perceive's live decision path.
+- **Family:** the evidence SPINE, gate 4 of 5. In CNS's spine script the gateway judges a door artifact that the script itself builds from the kernel root; the script's header says no repository ships that step. The three middle hand-offs (TIE evidence into a kernel root, a kernel root into the gateway's artifact, the document into CCC's attempt) are now also shipped as library functions in the [Spine](https://github.com/wking53214/Spine) repository (`spine.evidence`, `spine.door`, `spine.ccc`). Spine passes its own 41 tests at its pinned versions and has no running service (EXECUTED 2026-11-19 at Spine `7717f12`); it pins this repository at `5dead3c`, 4 commits behind main. The gateway's accept or refuse goes back to the script's roster. This repository has no code that receives anything from Conservation_Kernel or hands anything to CCC.
+- **Second use:** in front of observe-perceive's orchestrator path (the admission a caller passes in).
 - **Shared infrastructure:** it is not owned by either chain. Neither chain imports the other's code through this repository.
 
 ### Companion repositories
@@ -71,7 +99,7 @@ Question it does **not** answer: *is this request permitted under policy?* That 
 - [Conservation_Kernel](https://github.com/wking53214/Conservation_Kernel): judges a root built from evidence. Its epistemic vocabulary differs from this gateway's, so a caller maps between them.
 - [CCC](https://github.com/wking53214/CCC): the store behind the door. It has its own write-permission gate. This gateway writes nothing, so it has no write to gate.
 - [HERALD](https://github.com/wking53214/HERALD) and [TIE](https://github.com/wking53214/TIE): upstream of the gateway in the spine. This package imports neither and does not read their output.
-- [observe-perceive](https://github.com/wking53214/observe-perceive): the live-path consumer described above.
+- [observe-perceive](https://github.com/wking53214/observe-perceive): the orchestrator-path consumer described above.
 
 This repository has no runtime imports of sibling packages. The one exception is the optional CNS connector, which loads `cns.gate` only when one of its functions is called.
 
@@ -236,6 +264,7 @@ Snapshot labels, checked 2026-11-16 against `5dead3c`. Each result below states 
 | **Historical** `cd9cc62` | Counts were 459 and 268 at that commit. Earlier CI green there. Not a current result. |
 | **Historical** evidence-spine run, 2026-11-10 | Re-run locally, not CI: CNS `03eca66`, HERALD `63ed11b`, TIE `5a0dc59`, Conservation_Kernel `a03f237`, CCC `f3ce7a3`, Governance_Gateway `234fbf3`. Exit 0, 56 results ok, 3 recorded GAPs. |
 | **Historical** evidence-spine run, 2026-11-07 | Same script, 56 scenarios, exit 0, 3 GAPs, Governance_Gateway at `1bede83`. Superseded by the 2026-11-10 row. |
+| **EXECUTED 2026-11-17** at `b976e60` | Phase 2 review re-run, local, Python 3.13, `GOVERNANCE_GATEWAY_REQUIRE_CNS=1`. Against the pinned tag v4.0.0: 493 passed, 0 failed. Against the newer tag v4.1.0: 492 passed, 1 failed. The failure is `tests/test_cns_connector.py::test_the_test_double_is_no_looser_than_the_real_contract`: CNS 4.1.0's `GateResult` has a `retry_kind` field that the test double `tests/cns_gate_double.py` does not have. Without CNS: 302 passed, 1 skipped. First seen 2026-11-15 against CNS `5ad55ce`. The test was not edited. Moving the pin to v4.1.0 needs the test double updated first; that is an open item for the owner. Not run: CI. |
 | Version and release | `0.1.0`, untagged. Tagging is the owner's decision. |
 | CNS pin | The optional `cns` extra is pinned to v4.0.0 in `pyproject.toml`. |
 | Python floor | `Authority \| None` union syntax requires 3.11. Sibling projects declare 3.10 or newer in their project files (checked 2026-11-06, not re-checked). |
