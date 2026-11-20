@@ -22,6 +22,7 @@ import hashlib
 import json
 import math
 from dataclasses import dataclass
+from typing import Optional
 
 
 class GatePosition(enum.Enum):
@@ -35,6 +36,11 @@ class GateOutcome(enum.Enum):
     TERMINAL_BREACH = "terminal_breach"
 
 
+class RetryKind(str, enum.Enum):
+    CHANGE = "change"
+    WAIT = "wait"
+
+
 @dataclass(frozen=True, slots=True)
 class GateResult:
     gate: str
@@ -43,9 +49,13 @@ class GateResult:
     reason: str = ""
     subject: str = ""
     subject_digest: str = ""
+    retry_kind: Optional[RetryKind] = None
 
     def blocking(self) -> bool:
         return self.outcome is not GateOutcome.PASS
+
+    def waits(self) -> bool:
+        return self.outcome is GateOutcome.RETRY and self.retry_kind is RetryKind.WAIT
 
     def bound(self) -> bool:
         return bool(self.subject) and bool(self.subject_digest)

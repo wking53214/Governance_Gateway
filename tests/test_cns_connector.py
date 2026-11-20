@@ -645,7 +645,7 @@ def _accepts(function, content):
 
 def test_the_test_double_is_no_looser_than_the_real_contract():
     """``tests/cns_gate_double.py`` stands in for CNS in the CNS-free suite; keep it honest."""
-    for name in ("GatePosition", "GateOutcome"):
+    for name in ("GatePosition", "GateOutcome", "RetryKind"):
         real, fake = getattr(cns_gate, name), getattr(double, name)
         assert {m.name: m.value for m in fake} == {m.name: m.value for m in real}, name
     for name in ("GateResult", "GateChain"):
